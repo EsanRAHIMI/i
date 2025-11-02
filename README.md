@@ -96,13 +96,13 @@ pip install -r requirements.txt
 # تنظیم متغیرهای محیطی
 export POSTGRES_HOST=localhost
 export POSTGRES_PORT=5432
-export POSTGRES_DB=i_DB
-export POSTGRES_USER=esan
-export POSTGRES_PASSWORD=Admin_1234_1234
+export POSTGRES_DB=i***
+export POSTGRES_USER=es****
+export POSTGRES_PASSWORD=A*****
 export REDIS_URL=redis://localhost:6379/0
 export MINIO_ENDPOINT=localhost:9000
-export MINIO_ACCESS_KEY=esan
-export MINIO_SECRET_KEY=Admin_1234_1234
+export MINIO_ACCESS_KEY=es****
+export MINIO_SECRET_KEY=A*****
 export PYTHONPATH=$(pwd)
 
 # اجرای migrations
