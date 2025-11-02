@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { locales, getLocaleConfig } from '@/lib/utils';
-import { Language, UserSettings } from '@/types';
+import { Language, UserSettings, NotificationPreferences } from '@/types';
 
 export default function SettingsPage() {
   const { user, settings, updateUser, setSettings } = useAppStore();
@@ -16,6 +16,14 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'privacy' | 'integrations' | 'language'>('general');
 
+  // Notification preferences defaults
+  const notificationDefaults = {
+    email_notifications: true,
+    task_reminders: true,
+    ai_insights: true,
+    federated_learning: true
+  } as const;
+
   // Local state for form data
   const [formData, setFormData] = useState({
     language_preference: user?.language_preference || 'en-US' as Language,
@@ -24,9 +32,9 @@ export default function SettingsPage() {
     calendar_sync_enabled: settings?.calendar_sync_enabled ?? true,
     privacy_level: settings?.privacy_level || 'standard' as 'minimal' | 'standard' | 'enhanced',
     notification_preferences: {
-      ...settings?.notification_preferences,
-      federated_learning: settings?.notification_preferences?.federated_learning ?? true
-    }
+      ...notificationDefaults,
+      ...settings?.notification_preferences
+    } satisfies NotificationPreferences
   });
 
   useEffect(() => {
@@ -38,9 +46,9 @@ export default function SettingsPage() {
         calendar_sync_enabled: settings.calendar_sync_enabled ?? true,
         privacy_level: settings.privacy_level,
         notification_preferences: {
-          ...settings.notification_preferences,
-          federated_learning: settings.notification_preferences?.federated_learning ?? true
-        }
+          ...notificationDefaults,
+          ...settings.notification_preferences
+        } satisfies NotificationPreferences
       });
     }
   }, [user, settings]);

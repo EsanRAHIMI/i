@@ -10,13 +10,21 @@ export interface User {
   updated_at: string;
 }
 
+export interface NotificationPreferences {
+  email_notifications?: boolean;
+  task_reminders?: boolean;
+  ai_insights?: boolean;
+  federated_learning?: boolean;
+  [key: string]: any; // Allow additional properties
+}
+
 export interface UserSettings {
   user_id: string;
   whatsapp_opt_in: boolean;
   voice_training_consent: boolean;
   calendar_sync_enabled: boolean;
   privacy_level: 'minimal' | 'standard' | 'enhanced';
-  notification_preferences: Record<string, any>;
+  notification_preferences: NotificationPreferences;
 }
 
 export interface Task {
