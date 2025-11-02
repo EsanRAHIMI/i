@@ -2,13 +2,21 @@
 const path = require('path');
 
 const nextConfig = {
+  // خروجی standalone برای Docker و Dokploy
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+
+  // پشتیبانی از تصاویر
   images: {
-    // اگر از دامنه‌های خارجی استفاده می‌کنی اینجا اضافه کن
-    domains: ['localhost', 'aidepartment.net', 'api.aidepartment.net', 'minio.aidepartment.net'],
+    domains: [
+      'localhost',
+      'aidepartment.net',
+      'api.aidepartment.net',
+      'minio.aidepartment.net',
+    ],
   },
-  webpack: (config, { dev }) => {
-    // بهبود watch داخل Docker
+
+  webpack: (config, { dev, isServer }) => {
+    // بهبود عملکرد hot reload در Docker
     if (dev) {
       config.watchOptions = {
         poll: 1000,
@@ -16,13 +24,13 @@ const nextConfig = {
       };
     }
 
-    // بعضی پکیج‌های WebSocket باینری لازم ندارند
+    // حذف وابستگی‌های باینری غیرضروری WebSocket
     config.externals.push({
       'utf-8-validate': 'commonjs utf-8-validate',
       bufferutil: 'commonjs bufferutil',
     });
 
-    // تضمین اینکه alias ریشه پروژه با @ کار کند (علاوه بر paths در tsconfig)
+    // ✅ اصلاح alias برای Docker build و path resolve
     config.resolve.alias['@'] = path.resolve(__dirname);
 
     return config;
