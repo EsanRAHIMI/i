@@ -1,67 +1,64 @@
-# Multi-stage build for Node.js frontend
-FROM node:18-alpine as dependencies
+# =========================
+# Frontend (Next.js 14) – Multi-stage
+# =========================
 
+# 1) Dependencies layer (for caching npm)
+FROM node:20-alpine AS deps
 WORKDIR /app
-
-# Copy package files
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1
+# اگر package-lock.json داری، ci سریع‌تر و قابل‌اتکاتر است
 COPY package*.json ./
+RUN npm ci --ignore-scripts && npm cache clean --force
 
-# Install dependencies
-RUN npm install --only=production && npm cache clean --force
-
-# Build stage
-FROM node:18-alpine as builder
-
+# 2) Builder layer
+FROM node:20-alpine AS builder
 WORKDIR /app
+ENV NODE_ENV=development \
+    NEXT_TELEMETRY_DISABLED=1
 
-# Accept build arguments for Next.js public env vars
+# متغیرهای پابلیک برای بیلد (در Dokploy به صورت Build Args پاس بده)
 ARG NEXT_PUBLIC_API_URL
 ARG NEXT_PUBLIC_WS_URL
-
-# Set environment variables for build
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
 
-# Copy package files
+# نصب devDependencies با کش لایه قبلی
 COPY package*.json ./
+RUN npm ci
 
-# Install all dependencies (including dev)
-RUN npm install
-
-# Copy source code
+# کد پروژه
 COPY . .
 
-# Build the application
+# بیلد خروجی standalone
+# (نیازمند "output: 'standalone'" در next.config.js)
 RUN npm run build
 
-# Production stage
-FROM node:18-alpine as production
-
-# Set environment variables
-ENV NODE_ENV=production \
-    PORT=3000
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nextjs -u 1001
-
+# 3) Runtime (production) – فقط خروجی لازم
+FROM node:20-alpine AS production
 WORKDIR /app
 
-# Copy built application from builder stage
+# یوزر غیر ریشه
+RUN addgroup -g 1001 -S nodejs \
+ && adduser -S nextjs -u 1001
+
+ENV NODE_ENV=production \
+    PORT=3000 \
+    HOSTNAME=0.0.0.0 \
+    NEXT_TELEMETRY_DISABLED=1
+
+# کپی فقط Artefact های لازم برای اجرای standalone
+# ساختار استاندارد Next: server.js و node_modules داخل .next/standalone
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-# Copy public folder (create if it doesn't exist in builder)
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
-# Switch to non-root user
 USER nextjs
-
-# Expose port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/api/health || exit 1
+# Healthcheck با wget (در Alpine موجود است)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1
 
-# Start the application
+# server.js در ریشه‌ی standalone قرار دارد
 CMD ["node", "server.js"]

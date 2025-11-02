@@ -8,6 +8,7 @@ backend/.env
 frontend/.env
 ai/.env
 auth/.env
+docker-compose.dev.yml
 
 # Dependencies
 node_modules/
