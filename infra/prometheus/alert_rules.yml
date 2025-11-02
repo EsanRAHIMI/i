@@ -1,0 +1,229 @@
+groups:
+  - name: ai_assistant_alerts
+    rules:
+      # High-level system alerts
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status_code=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second for {{ $labels.service }}"
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time detected"
+          description: "95th percentile response time is {{ $value }}s for {{ $labels.service }}"
+
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service is down"
+          description: "{{ $labels.job }} service is down"
+
+      # Voice processing alerts
+      - alert: VoiceProcessingLatencyHigh
+        expr: histogram_quantile(0.95, rate(voice_processing_duration_seconds_bucket[5m])) > 2
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Voice processing latency is high"
+          description: "95th percentile voice processing time is {{ $value }}s for {{ $labels.operation }}"
+
+      - alert: VoiceProcessingErrorRate
+        expr: rate(voice_processing_total{status="error"}[5m]) / rate(voice_processing_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High voice processing error rate"
+          description: "Voice processing error rate is {{ $value | humanizePercentage }} for {{ $labels.operation }}"
+
+      # AI model alerts
+      - alert: AIModelAccuracyLow
+        expr: ai_model_accuracy_ratio < 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI model accuracy is low"
+          description: "{{ $labels.model_type }} accuracy is {{ $value | humanizePercentage }}"
+
+      - alert: AIInferenceLatencyHigh
+        expr: histogram_quantile(0.95, rate(ai_model_inference_duration_seconds_bucket[5m])) > 5
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI inference latency is high"
+          description: "95th percentile AI inference time is {{ $value }}s for {{ $labels.model_type }}"
+
+      # Database alerts
+      - alert: DatabaseConnectionsHigh
+        expr: database_connections_active > 80
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of database connections"
+          description: "Database has {{ $value }} active connections"
+
+      - alert: DatabaseQueryLatencyHigh
+        expr: histogram_quantile(0.95, rate(database_query_duration_seconds_bucket[5m])) > 1
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database query latency is high"
+          description: "95th percentile query time is {{ $value }}s for {{ $labels.table }}"
+
+      - alert: DatabaseErrorRate
+        expr: rate(database_queries_total{status="error"}[5m]) / rate(database_queries_total[5m]) > 0.02
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High database error rate"
+          description: "Database error rate is {{ $value | humanizePercentage }}"
+
+      # Cache alerts
+      - alert: CacheHitRateLow
+        expr: cache_hit_ratio < 0.7
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache hit ratio is low"
+          description: "Cache hit ratio is {{ $value | humanizePercentage }}"
+
+      # System resource alerts
+      - alert: HighCPUUsage
+        expr: system_cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: (system_memory_usage_bytes / (1024^3)) > 6  # 6GB
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanize1024 }}B"
+
+      - alert: DiskSpaceLow
+        expr: (system_disk_usage_bytes / (1024^3)) > 50  # 50GB
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Disk space is low"
+          description: "Disk usage is {{ $value | humanize1024 }}B on {{ $labels.device }}"
+
+      # Celery task queue alerts
+      - alert: CeleryQueueBacklog
+        expr: celery_queue_size > 100
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery queue backlog"
+          description: "Queue {{ $labels.queue_name }} has {{ $value }} pending tasks"
+
+      - alert: CeleryTaskFailureRate
+        expr: rate(celery_tasks_total{status="error"}[5m]) / rate(celery_tasks_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Celery task failure rate"
+          description: "Task failure rate is {{ $value | humanizePercentage }} for {{ $labels.task_name }}"
+
+      # External API alerts
+      - alert: ExternalAPIErrorRate
+        expr: rate(external_api_requests_total{status_code=~"5.."}[5m]) / rate(external_api_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High external API error rate"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.service }}"
+
+      - alert: ExternalAPILatencyHigh
+        expr: histogram_quantile(0.95, rate(external_api_duration_seconds_bucket[5m])) > 10
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "External API latency is high"
+          description: "95th percentile API latency is {{ $value }}s for {{ $labels.service }}"
+
+      # Security alerts
+      - alert: SecurityEventDetected
+        expr: increase(security_events_total{severity="critical"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical security event detected"
+          description: "{{ $value }} critical security events of type {{ $labels.event_type }}"
+
+      - alert: PrivacyViolationDetected
+        expr: increase(privacy_violations_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Privacy violation detected"
+          description: "{{ $value }} privacy violations of type {{ $labels.violation_type }}"
+
+      # User activity alerts
+      - alert: NoActiveUsers
+        expr: user_sessions_active == 0
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "No active users"
+          description: "No users are currently active on the system"
+
+      - alert: UserSatisfactionLow
+        expr: user_satisfaction_score < 3.0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "User satisfaction is low"
+          description: "User satisfaction score is {{ $value }} for {{ $labels.interaction_type }}"
+
+      # Federated learning alerts
+      - alert: FederatedLearningRoundFailed
+        expr: increase(federated_learning_rounds_total{status="error"}[1h]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Federated learning round failed"
+          description: "{{ $value }} federated learning rounds failed in the last hour"
+
+      - alert: FederatedLearningLowParticipation
+        expr: federated_learning_participants < 5
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low federated learning participation"
+          description: "Only {{ $value }} participants in federated learning"

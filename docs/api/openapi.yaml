@@ -1,0 +1,907 @@
+openapi: 3.1.0
+info:
+  title: Intelligent AI Assistant API
+  description: |
+    Next-generation **Agentic AI Life Assistant** API designed to act as the user's conscious digital twin, 
+    continuously learning, guiding, and optimizing real-world actions in real time.
+    
+    ## Features
+    - **Voice Processing**: Speech-to-text and text-to-speech with Whisper and Coqui/ElevenLabs
+    - **Calendar Integration**: Google Calendar synchronization with intelligent scheduling
+    - **WhatsApp Messaging**: Business Cloud API integration for confirmations and updates
+    - **Federated Learning**: Privacy-preserving machine learning with FedAvg and Differential Privacy
+    - **Digital Avatar**: 2D/3D animated user representation during interactions
+    - **Privacy Compliance**: GDPR, DIFC, and UAE Data Protection Law compliance
+    
+    ## Authentication
+    All endpoints (except health checks and webhook verification) require JWT authentication.
+    Include the Bearer token in the Authorization header:
+    ```
+    Authorization: Bearer <your_jwt_token>
+    ```
+    
+    ## Rate Limiting
+    API requests are rate-limited to prevent abuse:
+    - **Authentication endpoints**: 5 requests per minute
+    - **Voice processing**: 20 requests per minute
+    - **General API**: 100 requests per minute
+    
+    ## Error Handling
+    The API uses standard HTTP status codes and returns structured error responses:
+    ```json
+    {
+      "error": "Error description",
+      "correlation_id": "uuid",
+      "request_id": "uuid",
+      "timestamp": 1640995200.0
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: AI Assistant API Support
+    email: support@ai-assistant.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.ai-assistant.com/api/v1
+    description: Production server
+  - url: https://staging-api.ai-assistant.com/api/v1
+    description: Staging server
+  - url: http://localhost:8000/api/v1
+    description: Development server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Health and System
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      description: Check API health status
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  timestamp:
+                    type: number
+                    example: 1640995200.0
+                  version:
+                    type: string
+                    example: "1.0.0"
+
+  # Authentication Endpoints
+  /auth/register:
+    post:
+      tags: [Authentication]
+      summary: Register new user
+      description: Create a new user account with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  minLength: 8
+                  example: securepassword123
+                timezone:
+                  type: string
+                  example: UTC
+                language_preference:
+                  type: string
+                  enum: [en-US, fa-IR, ar-UA]
+                  example: en-US
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          description: Invalid input or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/login:
+    post:
+      tags: [Authentication]
+      summary: User login
+      description: Authenticate user and return JWT tokens
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  example: securepassword123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/refresh:
+    post:
+      tags: [Authentication]
+      summary: Refresh access token
+      description: Get new access token using refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token:
+                  type: string
+                  example: eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9...
+      responses:
+        '200':
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      tags: [Authentication]
+      summary: Get current user
+      description: Get authenticated user information
+      responses:
+        '200':
+          description: User information retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Voice Processing Endpoints
+  /voice/stt:
+    post:
+      tags: [Voice Processing]
+      summary: Speech to text
+      description: |
+        Convert speech audio to text using Whisper STT.
+        
+        **Audio Requirements:**
+        - Format: WAV, MP3, M4A, FLAC
+        - Max size: 50MB
+        - Base64 encoded
+        
+        **Performance:**
+        - Average latency: < 2 seconds
+        - Accuracy: > 95% for clear speech
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [audio_data]
+              properties:
+                audio_data:
+                  type: string
+                  format: base64
+                  description: Base64 encoded audio data
+                  example: UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT...
+                language:
+                  type: string
+                  description: Language hint (ISO 639-1 code)
+                  example: en
+                session_id:
+                  type: string
+                  description: Optional session ID for context
+                  example: session_123
+      responses:
+        '200':
+          description: Transcription successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  text:
+                    type: string
+                    example: "Schedule a meeting with John tomorrow at 3 PM"
+                  confidence:
+                    type: number
+                    format: float
+                    minimum: 0
+                    maximum: 1
+                    example: 0.95
+                  language:
+                    type: string
+                    example: en
+                  processing_time:
+                    type: number
+                    format: float
+                    example: 1.23
+                  session_id:
+                    type: string
+                    example: session_123
+        '400':
+          description: Invalid audio data or format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /voice/tts:
+    post:
+      tags: [Voice Processing]
+      summary: Text to speech
+      description: |
+        Convert text to speech using Coqui TTS or ElevenLabs.
+        
+        **Text Requirements:**
+        - Max length: 5000 characters
+        - Supports multiple languages
+        
+        **Audio Output:**
+        - Format: WAV (16kHz, 16-bit)
+        - Quality: High-fidelity synthesis
+        - Personalization: User voice characteristics
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                  maxLength: 5000
+                  example: "Your meeting with John has been scheduled for tomorrow at 3 PM"
+                language:
+                  type: string
+                  default: en
+                  example: en
+                voice_id:
+                  type: string
+                  description: Specific voice ID (optional)
+                  example: voice_user_123
+                prefer_quality:
+                  type: boolean
+                  default: false
+                  description: Prefer quality over speed
+                speed:
+                  type: number
+                  format: float
+                  minimum: 0.5
+                  maximum: 2.0
+                  default: 1.0
+                  description: Speech speed multiplier
+      responses:
+        '200':
+          description: TTS synthesis successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  audio_url:
+                    type: string
+                    format: uri
+                    example: "/api/v1/voice/audio/audio_123.wav"
+                  audio_data:
+                    type: string
+                    format: base64
+                    description: Base64 audio data (for small files)
+                    nullable: true
+                  metadata:
+                    type: object
+                    properties:
+                      duration:
+                        type: number
+                        format: float
+                        example: 3.45
+                      sample_rate:
+                        type: integer
+                        example: 16000
+                      voice_engine:
+                        type: string
+                        example: coqui
+                      processing_time:
+                        type: number
+                        format: float
+                        example: 0.89
+        '400':
+          description: Invalid text or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Calendar Integration Endpoints
+  /calendar/connect:
+    post:
+      tags: [Calendar Integration]
+      summary: Initiate Google Calendar connection
+      description: |
+        Start OAuth2 flow for Google Calendar integration.
+        Returns authorization URL for user to grant permissions.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                redirect_uri:
+                  type: string
+                  format: uri
+                  description: Custom redirect URI (optional)
+                  example: "https://myapp.com/calendar/callback"
+      responses:
+        '200':
+          description: Authorization URL generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  authorization_url:
+                    type: string
+                    format: uri
+                    example: "https://accounts.google.com/o/oauth2/auth?client_id=..."
+                  state:
+                    type: string
+                    example: "csrf_token_123"
+                  redirect_uri:
+                    type: string
+                    format: uri
+                    example: "https://api.ai-assistant.com/api/v1/calendar/oauth/callback"
+
+  /calendar/events:
+    get:
+      tags: [Calendar Integration]
+      summary: Get calendar events
+      description: Retrieve user's calendar events with optional date filtering
+      parameters:
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Start date filter (ISO 8601)
+          example: "2024-01-01T00:00:00Z"
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: End date filter (ISO 8601)
+          example: "2024-01-31T23:59:59Z"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+          description: Maximum number of events to return
+      responses:
+        '200':
+          description: Events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CalendarEvent'
+
+    post:
+      tags: [Calendar Integration]
+      summary: Create calendar event
+      description: Create a new calendar event with AI assistance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalendarEventCreate'
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalendarEvent'
+
+  # WhatsApp Integration Endpoints
+  /whatsapp/send:
+    post:
+      tags: [WhatsApp Integration]
+      summary: Send WhatsApp message
+      description: |
+        Send a message via WhatsApp Business Cloud API.
+        
+        **Requirements:**
+        - User must have opted in to WhatsApp notifications
+        - Valid WhatsApp Business API configuration
+        - Recipient must have WhatsApp account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [recipient, content]
+              properties:
+                recipient:
+                  type: string
+                  description: Phone number in international format
+                  example: "+1234567890"
+                content:
+                  type: string
+                  maxLength: 4096
+                  example: "Your meeting reminder: Team standup at 10 AM"
+                message_type:
+                  type: string
+                  enum: [text, template, interactive]
+                  default: text
+                template_name:
+                  type: string
+                  description: Template name for template messages
+                  example: "meeting_reminder"
+                template_params:
+                  type: object
+                  description: Parameters for template messages
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Message sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WhatsAppMessageResponse'
+
+  /whatsapp/webhook:
+    post:
+      tags: [WhatsApp Integration]
+      summary: WhatsApp webhook handler
+      description: |
+        Handle incoming WhatsApp webhook events.
+        
+        **Webhook Events:**
+        - Message delivery status updates
+        - Incoming user messages
+        - User responses to confirmations
+        
+        **Security:**
+        - Webhook signature verification required
+        - HMAC-SHA256 with shared secret
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: WhatsApp webhook payload
+              additionalProperties: true
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  # Federated Learning Endpoints
+  /fedl/round/current:
+    get:
+      tags: [Federated Learning]
+      summary: Get current federated round
+      description: |
+        Get information about the current federated learning round.
+        
+        **Federated Learning Process:**
+        1. Users train models locally on their data
+        2. Model updates are encrypted and uploaded
+        3. Server aggregates updates using FedAvg
+        4. New global model is distributed
+        
+        **Privacy Guarantees:**
+        - Differential privacy (ε=1.0, δ=1e-5)
+        - No raw data leaves user devices
+        - Secure aggregation protocols
+      responses:
+        '200':
+          description: Current round information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  round_id:
+                    type: string
+                    example: "round_123"
+                  round_number:
+                    type: integer
+                    example: 42
+                  model_version:
+                    type: string
+                    example: "v1.2.3"
+                  aggregation_status:
+                    type: string
+                    enum: [in_progress, completed, failed]
+                    example: in_progress
+                  participant_count:
+                    type: integer
+                    example: 156
+                  privacy_budget_remaining:
+                    type: number
+                    format: float
+                    minimum: 0
+                    maximum: 1
+                    example: 0.7
+
+  /fedl/round/upload:
+    post:
+      tags: [Federated Learning]
+      summary: Upload model update
+      description: |
+        Upload encrypted model update to current federated round.
+        
+        **Model Update Process:**
+        1. Train model locally on user data
+        2. Compute model parameter differences
+        3. Apply differential privacy noise
+        4. Encrypt model delta
+        5. Upload to aggregation server
+        
+        **Privacy Protection:**
+        - Local differential privacy
+        - Secure multi-party computation
+        - No reconstruction of individual data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [user_id, model_delta_encrypted, privacy_budget_used]
+              properties:
+                user_id:
+                  type: string
+                  example: "user_123"
+                model_delta_encrypted:
+                  type: string
+                  description: Base64 encoded encrypted model parameters
+                  example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+                privacy_budget_used:
+                  type: number
+                  format: float
+                  minimum: 0
+                  maximum: 1
+                  example: 0.1
+                training_metrics:
+                  type: object
+                  properties:
+                    loss:
+                      type: number
+                      format: float
+                      example: 0.23
+                    accuracy:
+                      type: number
+                      format: float
+                      example: 0.87
+                    samples_count:
+                      type: integer
+                      example: 1000
+                model_info:
+                  type: object
+                  properties:
+                    architecture:
+                      type: string
+                      example: "transformer"
+                    parameters_count:
+                      type: integer
+                      example: 1000000
+      responses:
+        '200':
+          description: Model update uploaded successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  update_id:
+                    type: string
+                    example: "update_456"
+                  round_id:
+                    type: string
+                    example: "round_123"
+                  participant_number:
+                    type: integer
+                    example: 157
+                  estimated_aggregation_time:
+                    type: string
+                    format: date-time
+                    nullable: true
+                    example: "2024-01-15T14:30:00Z"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Bearer token authentication.
+        
+        **Token Format:**
+        ```
+        Authorization: Bearer <jwt_token>
+        ```
+        
+        **Token Lifecycle:**
+        - Access tokens expire after 1 hour
+        - Refresh tokens expire after 30 days
+        - Automatic token rotation supported
+
+  schemas:
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Invalid email or password"
+        correlation_id:
+          type: string
+          format: uuid
+          description: Request correlation ID for debugging
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        request_id:
+          type: string
+          format: uuid
+          description: Unique request identifier
+          example: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        timestamp:
+          type: number
+          format: float
+          description: Unix timestamp of error
+          example: 1640995200.0
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+
+    TokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT access token
+          example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+        refresh_token:
+          type: string
+          description: JWT refresh token
+          example: "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."
+        token_type:
+          type: string
+          example: "bearer"
+        expires_in:
+          type: integer
+          description: Access token expiration in seconds
+          example: 3600
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+          example: "https://api.ai-assistant.com/avatars/user_123.jpg"
+        timezone:
+          type: string
+          example: "UTC"
+        language_preference:
+          type: string
+          enum: [en-US, fa-IR, ar-UA]
+          example: "en-US"
+        created_at:
+          type: string
+          format: date-time
+          example: "2024-01-01T00:00:00Z"
+
+    CalendarEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        google_event_id:
+          type: string
+          nullable: true
+          example: "google_event_123"
+        title:
+          type: string
+          example: "Team Meeting"
+        description:
+          type: string
+          nullable: true
+          example: "Weekly team standup meeting"
+        start_time:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:00:00Z"
+        end_time:
+          type: string
+          format: date-time
+          example: "2024-01-15T11:00:00Z"
+        location:
+          type: string
+          nullable: true
+          example: "Conference Room A"
+        attendees:
+          type: array
+          items:
+            type: string
+            format: email
+          example: ["john@example.com", "jane@example.com"]
+        ai_generated:
+          type: boolean
+          description: Whether event was created by AI
+          example: true
+
+    CalendarEventCreate:
+      type: object
+      required: [title, start_time, end_time]
+      properties:
+        title:
+          type: string
+          maxLength: 500
+          example: "Team Meeting"
+        description:
+          type: string
+          nullable: true
+          example: "Weekly team standup meeting"
+        start_time:
+          type: string
+          format: date-time
+          example: "2024-01-15T10:00:00Z"
+        end_time:
+          type: string
+          format: date-time
+          example: "2024-01-15T11:00:00Z"
+        location:
+          type: string
+          nullable: true
+          example: "Conference Room A"
+        attendees:
+          type: array
+          items:
+            type: string
+            format: email
+          example: ["john@example.com", "jane@example.com"]
+
+    WhatsAppMessageResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        thread_id:
+          type: string
+          format: uuid
+          example: "6ba7b810-9dad-11d1-80b4-00c04fd430c8"
+        message_id:
+          type: string
+          description: WhatsApp message ID
+          example: "wamid.123456789"
+        direction:
+          type: string
+          enum: [inbound, outbound]
+          example: "outbound"
+        content:
+          type: string
+          example: "Your meeting reminder: Team standup at 10 AM"
+        message_type:
+          type: string
+          enum: [text, template, interactive, image, document]
+          example: "text"
+        status:
+          type: string
+          enum: [sent, delivered, read, failed]
+          example: "delivered"
+        sent_at:
+          type: string
+          format: date-time
+          example: "2024-01-15T09:30:00Z"
+
+tags:
+  - name: System
+    description: System health and monitoring endpoints
+  - name: Authentication
+    description: User authentication and authorization
+  - name: Voice Processing
+    description: Speech-to-text and text-to-speech processing
+  - name: Calendar Integration
+    description: Google Calendar synchronization and management
+  - name: WhatsApp Integration
+    description: WhatsApp Business Cloud API messaging
+  - name: Federated Learning
+    description: Privacy-preserving machine learning system
+
+externalDocs:
+  description: Find more info about the AI Assistant API
+  url: https://docs.ai-assistant.com

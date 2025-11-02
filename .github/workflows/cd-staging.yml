@@ -1,0 +1,154 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    outputs:
+      backend-image: ${{ steps.meta-backend.outputs.tags }}
+      frontend-image: ${{ steps.meta-frontend.outputs.tags }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Extract metadata for backend
+      id: meta-backend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=staging
+    
+    - name: Build and push backend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: true
+        tags: ${{ steps.meta-backend.outputs.tags }}
+        labels: ${{ steps.meta-backend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Extract metadata for frontend
+      id: meta-frontend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
+        tags: |
+          type=ref,event=branch
+          type=sha,prefix={{branch}}-
+          type=raw,value=staging
+    
+    - name: Build and push frontend image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: true
+        tags: ${{ steps.meta-frontend.outputs.tags }}
+        labels: ${{ steps.meta-frontend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    environment: staging
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Setup SSH
+      uses: webfactory/ssh-agent@v0.8.0
+      with:
+        ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+    
+    - name: Add staging server to known hosts
+      run: |
+        ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+    
+    - name: Deploy to staging server
+      env:
+        STAGING_HOST: ${{ secrets.STAGING_HOST }}
+        STAGING_USER: ${{ secrets.STAGING_USER }}
+        BACKEND_IMAGE: ${{ needs.build-and-push.outputs.backend-image }}
+        FRONTEND_IMAGE: ${{ needs.build-and-push.outputs.frontend-image }}
+      run: |
+        # Copy deployment files to staging server
+        scp -r docker-compose.yml infra/ scripts/ .env.example \
+          $STAGING_USER@$STAGING_HOST:/opt/i-assistant/
+        
+        # Deploy on staging server
+        ssh $STAGING_USER@$STAGING_HOST << 'EOF'
+          cd /opt/i-assistant
+          
+          # Update environment
+          if [ ! -f .env ]; then
+            cp .env.example .env
+          fi
+          
+          # Update image tags in docker-compose
+          sed -i "s|image: .*backend.*|image: $BACKEND_IMAGE|g" docker-compose.yml
+          sed -i "s|image: .*frontend.*|image: $FRONTEND_IMAGE|g" docker-compose.yml
+          
+          # Pull new images
+          docker-compose pull
+          
+          # Run deployment script
+          chmod +x scripts/deploy.sh
+          ./scripts/deploy.sh
+          
+          # Run health check
+          chmod +x scripts/health-check.sh
+          ./scripts/health-check.sh
+        EOF
+    
+    - name: Run smoke tests
+      env:
+        STAGING_HOST: ${{ secrets.STAGING_HOST }}
+        STAGING_USER: ${{ secrets.STAGING_USER }}
+      run: |
+        ssh $STAGING_USER@$STAGING_HOST << 'EOF'
+          # Wait for services to be ready
+          sleep 30
+          
+          # Test endpoints
+          curl -f https://staging.i-assistant.com/health || exit 1
+          curl -f https://staging.i-assistant.com/api/health || exit 1
+          
+          echo "Smoke tests passed"
+        EOF
+    
+    - name: Notify deployment status
+      if: always()
+      uses: 8398a7/action-slack@v3
+      with:
+        status: ${{ job.status }}
+        channel: '#deployments'
+        webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        fields: repo,message,commit,author,action,eventName,ref,workflow

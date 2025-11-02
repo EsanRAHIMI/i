@@ -1,0 +1,105 @@
+# FastAPI Backend Dependencies
+
+# Core Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Database
+sqlalchemy==2.0.23
+alembic==1.13.0
+psycopg2-binary==2.9.11
+asyncpg==0.29.0
+
+# Authentication & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+cryptography==42.0.7
+
+# JWT for import jwt
+PyJWT==2.9.0
+
+# Task Queue
+celery==5.3.4
+redis==5.0.1
+
+# HTTP Client & External APIs
+httpx==0.25.2
+aiohttp==3.9.1
+requests==2.31.0
+
+# Google APIs
+google-auth==2.25.2
+google-auth-oauthlib==1.1.0
+google-auth-httplib2==0.2.0
+google-api-python-client==2.110.0
+
+# WhatsApp Business API
+twilio==8.11.0
+
+# Object Storage
+minio==7.2.0
+boto3==1.34.0
+
+# Data Processing
+pandas==1.5.3
+numpy>=1.26.4,<2.0
+python-dateutil==2.8.2
+
+# Voice Processing
+openai-whisper==20231117
+torch==2.1.0
+torchaudio==2.1.0
+torchvision==0.16.0
+librosa==0.10.1
+soundfile==0.12.1
+pydub==0.25.1
+
+# Text-to-Speech (temporarily disabled due to build issues)
+# TTS==0.22.0
+# elevenlabs==0.2.27
+
+# LangChain for AI orchestration
+langchain==0.1.0
+langchain-core>=0.1.7,<0.2
+langchain-openai==0.0.5
+
+# Monitoring & Logging
+prometheus-client==0.19.0
+structlog==24.1.0
+sentry-sdk[fastapi]==1.38.0
+psutil==5.9.6
+python-json-logger==2.0.7
+
+# Distributed Tracing
+opentelemetry-api==1.21.0
+opentelemetry-sdk==1.21.0
+opentelemetry-exporter-jaeger-thrift==1.21.0
+opentelemetry-instrumentation-fastapi==0.42b0
+opentelemetry-instrumentation-sqlalchemy==0.42b0
+opentelemetry-instrumentation-redis==0.42b0
+opentelemetry-instrumentation-httpx==0.42b0
+
+# Development & Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2
+factory-boy==3.3.0
+
+# Code Quality
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
+
+# Environment
+python-dotenv==1.0.0
+
+email-validator==2.2.0
+
+# Pin setuptools to avoid pkg_resources deprecation warnings with OpenTelemetry
+# OpenTelemetry uses pkg_resources which is deprecated in setuptools>=81
+setuptools<81.0.0,>=65.0.0

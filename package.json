@@ -1,0 +1,50 @@
+{
+  "name": "i-assistant",
+  "version": "1.0.0",
+  "description": "Intelligent AI Life Assistant - Agentic digital twin for real-time guidance and optimization",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend/web",
+    "ai/web"
+  ],
+  "scripts": {
+    "dev": "docker-compose up -d",
+    "build": "docker-compose build",
+    "start": "docker-compose up -d",
+    "stop": "docker-compose down",
+    "logs": "docker-compose logs -f",
+    "setup": "./scripts/setup.sh",
+    "clean": "docker-compose down -v && docker system prune -f",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "format": "npm run format --workspaces"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "husky": "^8.0.0",
+    "lint-staged": "^13.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/i-assistant.git"
+  },
+  "keywords": [
+    "ai",
+    "assistant",
+    "voice-interface",
+    "federated-learning",
+    "calendar",
+    "whatsapp",
+    "privacy"
+  ],
+  "author": "Your Organization",
+  "license": "MIT"
+}

@@ -1,0 +1,183 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AI Assistant - Security & Privacy",
+    "tags": ["ai-assistant", "security", "privacy"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Security Events",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(security_events_total[5m])",
+            "legendFormat": "{{event_type}} - {{severity}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Events/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Privacy Violations",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(privacy_violations_total[5m])",
+            "legendFormat": "{{violation_type}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Violations/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Authentication Failures",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{status_code=\"401\"}[5m])",
+            "legendFormat": "401 Unauthorized"
+          },
+          {
+            "expr": "rate(http_requests_total{status_code=\"403\"}[5m])",
+            "legendFormat": "403 Forbidden"
+          }
+        ],
+        "yAxes": [
+          {"label": "Failures/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Request Rate by Endpoint",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(http_requests_total[5m])",
+            "legendFormat": "{{method}} {{endpoint}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Requests/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Critical Security Events (Last 24h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(security_events_total{severity=\"critical\"}[24h])",
+            "legendFormat": "Critical Events"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Privacy Violations (Last 24h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(privacy_violations_total[24h])",
+            "legendFormat": "Privacy Violations"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "red", "value": 1}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Failed Logins (Last 1h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(http_requests_total{status_code=\"401\"}[1h])",
+            "legendFormat": "Failed Logins"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 50}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 16}
+      },
+      {
+        "id": 8,
+        "title": "Rate Limited Requests (Last 1h)",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(http_requests_total{status_code=\"429\"}[1h])",
+            "legendFormat": "Rate Limited"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 1000}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 16}
+      }
+    ]
+  }
+}

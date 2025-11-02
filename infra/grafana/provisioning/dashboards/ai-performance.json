@@ -1,0 +1,146 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AI Assistant - AI Performance",
+    "tags": ["ai-assistant", "ai", "performance"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Voice Processing Latency",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(voice_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "95th percentile - {{operation}}"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(voice_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "50th percentile - {{operation}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Seconds", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Voice Processing Success Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(voice_processing_total{status=\"success\"}[5m]) / rate(voice_processing_total[5m]) * 100",
+            "legendFormat": "Success Rate - {{operation}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Percent", "min": 0, "max": 100}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "AI Model Inference Time",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(ai_model_inference_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{model_type}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Seconds", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "AI Model Accuracy",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "ai_model_accuracy_ratio * 100",
+            "legendFormat": "{{model_type}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Percent", "min": 0, "max": 100}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "User Interactions by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(user_interactions_total[5m])",
+            "legendFormat": "{{interaction_type}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Interactions/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "User Satisfaction Score",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "user_satisfaction_score",
+            "legendFormat": "{{interaction_type}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Score", "min": 0, "max": 5}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Federated Learning Participants",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "federated_learning_participants",
+            "legendFormat": "Participants"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 24}
+      },
+      {
+        "id": 8,
+        "title": "FL Rounds Completed",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "increase(federated_learning_rounds_total{status=\"success\"}[1h])",
+            "legendFormat": "Rounds/hour"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 24}
+      }
+    ]
+  }
+}

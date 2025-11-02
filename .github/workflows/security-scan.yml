@@ -1,0 +1,261 @@
+name: Security Scanning
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install Python dependencies
+      working-directory: ./backend
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install safety bandit
+    
+    - name: Install Node.js dependencies
+      working-directory: ./frontend
+      run: npm ci
+    
+    - name: Run Python safety check
+      working-directory: ./backend
+      run: |
+        safety check --json --output safety-report.json || true
+        safety check --short-report
+    
+    - name: Run Bandit security linter
+      working-directory: ./backend
+      run: |
+        bandit -r . -f json -o bandit-report.json || true
+        bandit -r . -ll
+    
+    - name: Run npm audit
+      working-directory: ./frontend
+      run: |
+        npm audit --audit-level=moderate --json > npm-audit.json || true
+        npm audit --audit-level=moderate
+    
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          backend/safety-report.json
+          backend/bandit-report.json
+          frontend/npm-audit.json
+
+  container-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Build backend image
+      run: docker build -t i-assistant-backend:scan ./backend
+    
+    - name: Build frontend image
+      run: docker build -t i-assistant-frontend:scan ./frontend
+    
+    - name: Run Trivy vulnerability scanner on backend
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'i-assistant-backend:scan'
+        format: 'sarif'
+        output: 'backend-trivy-results.sarif'
+    
+    - name: Run Trivy vulnerability scanner on frontend
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'i-assistant-frontend:scan'
+        format: 'sarif'
+        output: 'frontend-trivy-results.sarif'
+    
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: '.'
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Run TruffleHog OSS
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  sast-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: python, javascript
+        queries: security-extended,security-and-quality
+    
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v2
+    
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        category: "/language:python,javascript"
+
+  infrastructure-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Run Checkov
+      id: checkov
+      uses: bridgecrewio/checkov-action@master
+      with:
+        directory: .
+        framework: dockerfile,docker_compose,github_actions
+        output_format: sarif
+        output_file_path: checkov-results.sarif
+    
+    - name: Upload Checkov scan results
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: checkov-results.sarif
+
+  license-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install license scanners
+      run: |
+        pip install pip-licenses
+        npm install -g license-checker
+    
+    - name: Scan Python licenses
+      working-directory: ./backend
+      run: |
+        pip install -r requirements.txt
+        pip-licenses --format=json --output-file=python-licenses.json
+        pip-licenses --format=plain-vertical
+    
+    - name: Scan Node.js licenses
+      working-directory: ./frontend
+      run: |
+        npm ci
+        license-checker --json --out nodejs-licenses.json
+        license-checker --summary
+    
+    - name: Upload license reports
+      uses: actions/upload-artifact@v3
+      with:
+        name: license-reports
+        path: |
+          backend/python-licenses.json
+          frontend/nodejs-licenses.json
+
+  security-report:
+    runs-on: ubuntu-latest
+    needs: [dependency-scan, container-scan, secrets-scan, sast-scan, infrastructure-scan, license-scan]
+    if: always()
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+    
+    - name: Generate security summary
+      run: |
+        echo "# Security Scan Summary" > security-summary.md
+        echo "Date: $(date)" >> security-summary.md
+        echo "" >> security-summary.md
+        
+        echo "## Scan Results" >> security-summary.md
+        echo "- Dependency Scan: ${{ needs.dependency-scan.result }}" >> security-summary.md
+        echo "- Container Scan: ${{ needs.container-scan.result }}" >> security-summary.md
+        echo "- Secrets Scan: ${{ needs.secrets-scan.result }}" >> security-summary.md
+        echo "- SAST Scan: ${{ needs.sast-scan.result }}" >> security-summary.md
+        echo "- Infrastructure Scan: ${{ needs.infrastructure-scan.result }}" >> security-summary.md
+        echo "- License Scan: ${{ needs.license-scan.result }}" >> security-summary.md
+        echo "" >> security-summary.md
+        
+        if [ -f security-reports/safety-report.json ]; then
+          echo "## Python Dependencies" >> security-summary.md
+          echo "Safety scan completed. Check artifacts for details." >> security-summary.md
+        fi
+        
+        if [ -f security-reports/npm-audit.json ]; then
+          echo "## Node.js Dependencies" >> security-summary.md
+          echo "NPM audit completed. Check artifacts for details." >> security-summary.md
+        fi
+    
+    - name: Upload security summary
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-summary
+        path: security-summary.md
+    
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('security-summary.md', 'utf8');
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          });
