@@ -219,7 +219,7 @@ transformers==4.57.1
 TTS==0.22.0
 twilio==8.11.0
 typeguard==4.4.4
-typer==0.19.2
+typer==0.20.0
 typing_extensions==4.15.0
 tzdata==2025.2
 tzlocal==5.3.1
