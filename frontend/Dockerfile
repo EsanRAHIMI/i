@@ -7,9 +7,8 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
-# اگر package-lock.json داری، ci سریع‌تر و قابل‌اتکاتر است
 COPY package*.json ./
-RUN npm ci --ignore-scripts && npm cache clean --force
+RUN npm install --legacy-peer-deps --ignore-scripts && npm cache clean --force
 
 # 2) Builder layer
 FROM node:20-alpine AS builder
@@ -25,13 +24,12 @@ ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
 
 # نصب devDependencies با کش لایه قبلی
 COPY package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # کد پروژه
 COPY . .
 
 # بیلد خروجی standalone
-# (نیازمند "output: 'standalone'" در next.config.js)
 RUN npm run build
 
 # 3) Runtime (production) – فقط خروجی لازم
@@ -48,7 +46,6 @@ ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1
 
 # کپی فقط Artefact های لازم برای اجرای standalone
-# ساختار استاندارد Next: server.js و node_modules داخل .next/standalone
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
@@ -60,5 +57,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
   CMD wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1
 
-# server.js در ریشه‌ی standalone قرار دارد
+# اجرای سرور Next.js
 CMD ["node", "server.js"]
