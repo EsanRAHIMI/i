@@ -2,21 +2,14 @@
 const path = require('path');
 
 const nextConfig = {
-  // خروجی standalone برای Docker و Dokploy
   output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
 
-  // پشتیبانی از تصاویر
   images: {
-    domains: [
-      'localhost',
-      'aidepartment.net',
-      'api.aidepartment.net',
-      'minio.aidepartment.net',
-    ],
+    domains: ['localhost', 'aidepartment.net', 'api.aidepartment.net', 'minio.aidepartment.net'],
   },
 
-  webpack: (config, { dev, isServer }) => {
-    // بهبود عملکرد hot reload در Docker
+  webpack: (config, { dev }) => {
+    // بهبود hot reload برای Docker
     if (dev) {
       config.watchOptions = {
         poll: 1000,
@@ -24,14 +17,17 @@ const nextConfig = {
       };
     }
 
-    // حذف وابستگی‌های باینری غیرضروری WebSocket
+    // رفع خطای WebSocket باینری
     config.externals.push({
       'utf-8-validate': 'commonjs utf-8-validate',
       bufferutil: 'commonjs bufferutil',
     });
 
-    // ✅ اصلاح alias برای Docker build و path resolve
-    config.resolve.alias['@'] = path.resolve(__dirname);
+    // ✅ مسیر alias اصلاح شد تا در Dokploy و Docker درست resolve بشه
+    config.resolve.alias['@'] = path.resolve(__dirname, '.');
+
+    // اضافه کردن پشتیبانی از TS path mappings
+    config.resolve.modules.push(path.resolve(__dirname));
 
     return config;
   },
