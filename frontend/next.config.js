@@ -1,15 +1,15 @@
 /** @type {import('next').NextConfig} */
-const path = require('path');
+const path = require("path");
 
 const nextConfig = {
-  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
+  output: process.env.NODE_ENV === "production" ? "standalone" : undefined,
 
   images: {
-    domains: ['localhost', 'aidepartment.net', 'api.aidepartment.net', 'minio.aidepartment.net'],
+    domains: ["localhost", "aidepartment.net", "api.aidepartment.net", "minio.aidepartment.net"],
   },
 
-  webpack: (config, { dev }) => {
-    // بهبود hot reload برای Docker
+  webpack: (config, { dev, isServer }) => {
+    // بهبود hot reload در Docker
     if (dev) {
       config.watchOptions = {
         poll: 1000,
@@ -17,16 +17,19 @@ const nextConfig = {
       };
     }
 
-    // رفع خطای WebSocket باینری
+    // رفع خطاهای WebSocket
     config.externals.push({
-      'utf-8-validate': 'commonjs utf-8-validate',
-      bufferutil: 'commonjs bufferutil',
+      "utf-8-validate": "commonjs utf-8-validate",
+      bufferutil: "commonjs bufferutil",
     });
 
-    // ✅ مسیر alias اصلاح شد تا در Dokploy و Docker درست resolve بشه
-    config.resolve.alias['@'] = path.resolve(__dirname, '.');
+    // ✅ مسیر alias دقیق و سازگار با Docker
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@": path.resolve(__dirname), // یعنی /app در Docker
+    };
 
-    // اضافه کردن پشتیبانی از TS path mappings
+    // اضافه کردن مسیر پروژه به resolve.modules
     config.resolve.modules.push(path.resolve(__dirname));
 
     return config;

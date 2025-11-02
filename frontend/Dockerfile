@@ -29,6 +29,9 @@ RUN npm install --legacy-peer-deps
 # کد پروژه
 COPY . .
 
+# Force recheck of paths for Next.js inside Docker
+RUN ls -la ./lib && ls -la ./app && echo "✅ Paths visible inside container"
+
 # بیلد خروجی standalone
 RUN npm run build
 
