@@ -48,7 +48,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       setConnectionState('connecting');
       
       // Add auth token to WebSocket URL if user is authenticated
-      const wsUrl = user ? `${url}?token=${localStorage.getItem('auth_token')}` : url;
+      // Only access localStorage in browser environment
+      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+      const wsUrl = user && token ? `${url}?token=${token}` : url;
       
       wsRef.current = new WebSocket(wsUrl, protocols);
 
