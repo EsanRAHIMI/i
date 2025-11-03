@@ -9,10 +9,23 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
 # Install system dependencies
+# - gcc, g++: Required for compiling Python packages (psycopg2, cryptography, etc.)
+# - curl: Required for health checks
+# - wget: Alternative for health checks and downloads
+# - ffmpeg: Required for pydub audio processing
+# - libsndfile1: Required for soundfile/librosa audio processing
+# - sox: Audio processing tools
+# - build-essential: Additional build tools for native extensions
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
+    wget \
+    ffmpeg \
+    libsndfile1 \
+    sox \
+    libsox-dev \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user
