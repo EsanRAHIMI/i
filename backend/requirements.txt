@@ -1,5 +1,8 @@
 # FastAPI Backend Dependencies
 
+# PyTorch CPU-only installation (no GPU/CUDA)
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 # Core Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
@@ -50,9 +53,9 @@ python-dateutil==2.8.2
 
 # Voice Processing
 openai-whisper==20231117
-torch==2.1.0
-torchaudio==2.1.0
-torchvision==0.16.0
+torch==2.5.1
+torchvision==0.20.1
+torchaudio==2.5.1
 librosa==0.10.1
 soundfile==0.12.1
 pydub==0.25.1
