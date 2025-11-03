@@ -49,7 +49,7 @@ boto3==1.34.0
 # Data Processing
 pandas==1.5.3
 numpy>=1.26.4,<2.0
-python-dateutil==2.8.2
+python-dateutil==2.9.0.post0
 
 # Voice Processing
 openai-whisper==20231117
