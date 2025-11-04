@@ -45,9 +45,11 @@ export default function CalendarPage() {
       setIsConnecting(true);
       setError(null);
 
-      // Backend will use GOOGLE_REDIRECT_URI from settings
-      // Start OAuth flow (no redirect_uri needed - backend handles it)
-      const { authorization_url } = await apiClient.connectCalendar();
+      // Use frontend callback URL - backend will handle OAuth and redirect back to frontend
+      const redirectUri = `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost'}/calendar/callback`;
+
+      // Start OAuth flow
+      const { authorization_url } = await apiClient.connectCalendar(redirectUri);
 
       // Redirect to Google OAuth
       window.location.href = authorization_url;

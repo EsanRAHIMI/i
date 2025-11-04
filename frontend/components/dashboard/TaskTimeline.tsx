@@ -148,17 +148,17 @@ export function TaskTimeline({ className, showDate, maxItems = 10 }: TaskTimelin
     <div className={className}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="text-left">
-          <h2 className="text-xl font-semibold text-white text-left">Timeline</h2>
-          <p className="text-gray-400 text-sm text-left mt-1">{formatDate(targetDate)}</p>
+        <div>
+          <h2 className="text-xl font-semibold text-white">Timeline</h2>
+          <p className="text-gray-400 text-sm">{formatDate(targetDate)}</p>
         </div>
         
         {/* Filters */}
-        <div className="flex items-center gap-2">
+        <div className="flex space-x-2">
           <select
             value={selectedFilter}
             onChange={(e) => setSelectedFilter(e.target.value as any)}
-            className="px-3 py-1.5 text-sm text-left"
+            className="bg-dark-700 border border-gray-600 rounded px-3 py-1 text-sm text-white"
           >
             <option value="all">All Items</option>
             <option value="task">Tasks Only</option>
@@ -168,7 +168,7 @@ export function TaskTimeline({ className, showDate, maxItems = 10 }: TaskTimelin
           <select
             value={selectedPriority}
             onChange={(e) => setSelectedPriority(e.target.value as any)}
-            className="px-3 py-1.5 text-sm text-left"
+            className="bg-dark-700 border border-gray-600 rounded px-3 py-1 text-sm text-white"
           >
             <option value="all">All Priorities</option>
             <option value="high">High Priority</option>
@@ -189,28 +189,28 @@ export function TaskTimeline({ className, showDate, maxItems = 10 }: TaskTimelin
               )}
               
               {/* Timeline item */}
-              <div className={`flex items-start gap-4 p-4 rounded-lg border ${getStatusColor(item)}`}>
+              <div className={`flex items-start space-x-4 p-4 rounded-lg border ${getStatusColor(item)}`}>
                 {/* Icon */}
-                <div className="flex-shrink-0 w-10 h-10 bg-dark-700 rounded-full flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 bg-dark-700 rounded-full flex items-center justify-center">
                   {getItemIcon(item)}
                 </div>
                 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0 text-left">
-                      <h3 className={`text-sm font-medium text-left ${item.completed ? 'line-through text-gray-400' : 'text-white'}`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className={`text-sm font-medium ${item.completed ? 'line-through text-gray-400' : 'text-white'}`}>
                         {item.title}
                       </h3>
                       
                       {item.description && (
-                        <p className="text-xs text-gray-400 mt-1.5 line-clamp-2 text-left">
+                        <p className="text-xs text-gray-400 mt-1 line-clamp-2">
                           {item.description}
                         </p>
                       )}
                       
-                      <div className="flex items-center gap-2 mt-2 flex-wrap">
-                        <span className="text-xs text-gray-500 text-left">
+                      <div className="flex items-center space-x-2 mt-2">
+                        <span className="text-xs text-gray-500">
                           {formatTime(item.time)}
                         </span>
                         
@@ -221,7 +221,7 @@ export function TaskTimeline({ className, showDate, maxItems = 10 }: TaskTimelin
                         )}
                         
                         {item.type === 'task' && item.priority && (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center space-x-1">
                             <div className={`w-2 h-2 rounded-full ${getPriorityColor(item.priority)}`} />
                             <span className="text-xs text-gray-500">
                               P{item.priority}
@@ -233,7 +233,7 @@ export function TaskTimeline({ className, showDate, maxItems = 10 }: TaskTimelin
                     
                     {/* Status badge */}
                     <span className={`
-                      inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap flex-shrink-0
+                      inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                       ${item.type === 'task' 
                         ? item.completed 
                           ? 'bg-green-100 text-green-800'
@@ -257,8 +257,8 @@ export function TaskTimeline({ className, showDate, maxItems = 10 }: TaskTimelin
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-gray-400 text-center">No items for this day</p>
-            <p className="text-gray-500 text-sm mt-1 text-center">Your schedule is clear</p>
+            <p className="text-gray-400">No items for this day</p>
+            <p className="text-gray-500 text-sm mt-1">Your schedule is clear</p>
           </div>
         )}
       </div>
@@ -267,23 +267,23 @@ export function TaskTimeline({ className, showDate, maxItems = 10 }: TaskTimelin
       {timelineItems.length > 0 && (
         <div className="mt-6 pt-4 border-t border-gray-700">
           <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="text-center">
+            <div>
               <p className="text-2xl font-bold text-white">
                 {timelineItems.filter(item => item.type === 'task').length}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Tasks</p>
+              <p className="text-xs text-gray-400">Tasks</p>
             </div>
-            <div className="text-center">
+            <div>
               <p className="text-2xl font-bold text-white">
                 {timelineItems.filter(item => item.type === 'event').length}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Events</p>
+              <p className="text-xs text-gray-400">Events</p>
             </div>
-            <div className="text-center">
+            <div>
               <p className="text-2xl font-bold text-white">
                 {timelineItems.filter(item => item.ai_generated).length}
               </p>
-              <p className="text-xs text-gray-400 mt-1">AI Generated</p>
+              <p className="text-xs text-gray-400">AI Generated</p>
             </div>
           </div>
         </div>

@@ -47,11 +47,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Navigation />
       
       {/* Main content */}
-      <div className="lg:pl-64 w-full">
-        <main className="min-h-screen w-full flex justify-center">
-          <div className="w-full max-w-[1920px]">
-            {children}
-          </div>
+      <div className="lg:pl-64">
+        <main className="min-h-screen">
+          {children}
         </main>
       </div>
     </div>

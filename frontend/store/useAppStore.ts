@@ -48,120 +48,113 @@ const initialState: AppState = {
   error: null,
 };
 
-// Helper to check if we're in browser environment
-const isBrowser = typeof window !== 'undefined';
-
-// Create store factory that works with SSR
-const storeFactory = (set: any, get: any) => ({
-  ...initialState,
-  
-  // User actions
-  setUser: (user: User | null) => set({ user }, false, 'setUser'),
-  updateUser: (updates: Partial<User>) => set(
-    (state: AppStore) => ({
-      user: state.user ? { ...state.user, ...updates } : null
-    }),
-    false,
-    'updateUser'
-  ),
-  
-  // Settings actions
-  setSettings: (settings: UserSettings | null) => set({ settings }, false, 'setSettings'),
-  updateSettings: (updates: Partial<UserSettings>) => set(
-    (state: AppStore) => ({
-      settings: state.settings ? { ...state.settings, ...updates } : null
-    }),
-    false,
-    'updateSettings'
-  ),
-  
-  // Task actions
-  setTasks: (tasks: Task[]) => set({ tasks }, false, 'setTasks'),
-  addTask: (task: Task) => set(
-    (state: AppStore) => ({ tasks: [...state.tasks, task] }),
-    false,
-    'addTask'
-  ),
-  updateTask: (id: string, updates: Partial<Task>) => set(
-    (state: AppStore) => ({
-      tasks: state.tasks.map(task => 
-        task.id === id ? { ...task, ...updates } : task
-      )
-    }),
-    false,
-    'updateTask'
-  ),
-  removeTask: (id: string) => set(
-    (state: AppStore) => ({ tasks: state.tasks.filter(task => task.id !== id) }),
-    false,
-    'removeTask'
-  ),
-  
-  // Calendar actions
-  setEvents: (events: CalendarEvent[]) => set({ events }, false, 'setEvents'),
-  addEvent: (event: CalendarEvent) => set(
-    (state: AppStore) => ({ events: [...state.events, event] }),
-    false,
-    'addEvent'
-  ),
-  updateEvent: (id: string, updates: Partial<CalendarEvent>) => set(
-    (state: AppStore) => ({
-      events: state.events.map(event => 
-        event.id === id ? { ...event, ...updates } : event
-      )
-    }),
-    false,
-    'updateEvent'
-  ),
-  removeEvent: (id: string) => set(
-    (state: AppStore) => ({ events: state.events.filter(event => event.id !== id) }),
-    false,
-    'removeEvent'
-  ),
-  
-  // Voice session actions
-  setVoiceSession: (voiceSession: VoiceSession | null) => set({ voiceSession }, false, 'setVoiceSession'),
-  updateVoiceSession: (updates: Partial<VoiceSession>) => set(
-    (state: AppStore) => ({
-      voiceSession: state.voiceSession ? { ...state.voiceSession, ...updates } : null
-    }),
-    false,
-    'updateVoiceSession'
-  ),
-  
-  // UI state actions
-  setLoading: (isLoading: boolean) => set({ isLoading }, false, 'setLoading'),
-  setError: (error: string | null) => set({ error }, false, 'setError'),
-  
-  // Language actions
-  setLanguage: (language: Language) => set(
-    (state: AppStore) => ({
-      user: state.user ? { ...state.user, language_preference: language } : null
-    }),
-    false,
-    'setLanguage'
-  ),
-  
-  // Reset actions
-  reset: () => set(initialState, false, 'reset'),
-});
-
-// Create store with proper SSR handling
 export const useAppStore = create<AppStore>()(
   devtools(
-    isBrowser
-      ? persist(storeFactory, {
-          name: 'i-assistant-store',
-          partialize: (state) => ({
-            // Only persist settings, not user (user is tied to auth_token)
-            // This prevents having stale user data when token is invalid
-            settings: state.settings,
+    persist(
+      (set, get) => ({
+        ...initialState,
+        
+        // User actions
+        setUser: (user) => set({ user }, false, 'setUser'),
+        updateUser: (updates) => set(
+          (state) => ({
+            user: state.user ? { ...state.user, ...updates } : null
           }),
-        })
-      : storeFactory,
+          false,
+          'updateUser'
+        ),
+        
+        // Settings actions
+        setSettings: (settings) => set({ settings }, false, 'setSettings'),
+        updateSettings: (updates) => set(
+          (state) => ({
+            settings: state.settings ? { ...state.settings, ...updates } : null
+          }),
+          false,
+          'updateSettings'
+        ),
+        
+        // Task actions
+        setTasks: (tasks) => set({ tasks }, false, 'setTasks'),
+        addTask: (task) => set(
+          (state) => ({ tasks: [...state.tasks, task] }),
+          false,
+          'addTask'
+        ),
+        updateTask: (id, updates) => set(
+          (state) => ({
+            tasks: state.tasks.map(task => 
+              task.id === id ? { ...task, ...updates } : task
+            )
+          }),
+          false,
+          'updateTask'
+        ),
+        removeTask: (id) => set(
+          (state) => ({ tasks: state.tasks.filter(task => task.id !== id) }),
+          false,
+          'removeTask'
+        ),
+        
+        // Calendar actions
+        setEvents: (events) => set({ events }, false, 'setEvents'),
+        addEvent: (event) => set(
+          (state) => ({ events: [...state.events, event] }),
+          false,
+          'addEvent'
+        ),
+        updateEvent: (id, updates) => set(
+          (state) => ({
+            events: state.events.map(event => 
+              event.id === id ? { ...event, ...updates } : event
+            )
+          }),
+          false,
+          'updateEvent'
+        ),
+        removeEvent: (id) => set(
+          (state) => ({ events: state.events.filter(event => event.id !== id) }),
+          false,
+          'removeEvent'
+        ),
+        
+        // Voice session actions
+        setVoiceSession: (voiceSession) => set({ voiceSession }, false, 'setVoiceSession'),
+        updateVoiceSession: (updates) => set(
+          (state) => ({
+            voiceSession: state.voiceSession ? { ...state.voiceSession, ...updates } : null
+          }),
+          false,
+          'updateVoiceSession'
+        ),
+        
+        // UI state actions
+        setLoading: (isLoading) => set({ isLoading }, false, 'setLoading'),
+        setError: (error) => set({ error }, false, 'setError'),
+        
+        // Language actions
+        setLanguage: (language) => set(
+          (state) => ({
+            user: state.user ? { ...state.user, language_preference: language } : null
+          }),
+          false,
+          'setLanguage'
+        ),
+        
+        // Reset actions
+        reset: () => set(initialState, false, 'reset'),
+      }),
+      {
+        name: 'i-assistant-store',
+        partialize: (state) => ({
+          // Only persist settings, not user (user is tied to auth_token)
+          // This prevents having stale user data when token is invalid
+          settings: state.settings,
+        }),
+      }
+    ),
     {
       name: 'i-assistant-store',
-      enabled: isBrowser, // Only enable devtools in browser
     }
   )
 );

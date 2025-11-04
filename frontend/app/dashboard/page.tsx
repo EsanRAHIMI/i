@@ -72,15 +72,15 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-6 lg:p-8 w-full">
+    <div className="p-6 lg:p-8">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between w-full">
-          <div className="text-left">
+        <div className="flex items-center justify-between">
+          <div>
             <h1 className="text-3xl font-bold text-white">
               Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}
             </h1>
-            <p className="text-gray-400 mt-1 text-left">
+            <p className="text-gray-400 mt-1">
               Welcome back, {user?.email?.split('@')[0]}
             </p>
           </div>
@@ -89,7 +89,7 @@ export default function DashboardPage() {
             <VoiceActivityIndicator size="md" />
             <button
               onClick={() => setShowAvatarCustomization(true)}
-              className="text-xs text-primary-400 hover:text-primary-300 underline whitespace-nowrap"
+              className="text-xs text-primary-400 hover:text-primary-300 underline"
             >
               Customize Avatar
             </button>
@@ -98,82 +98,80 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 w-full">
-        <div className="bg-dark-800 rounded-lg p-6 border border-gray-700 w-full">
-          <div className="flex items-center justify-start gap-4">
-            <div className="p-3 bg-primary-600 rounded-lg flex-shrink-0">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-dark-800 rounded-lg p-6 border border-gray-700">
+          <div className="flex items-center">
+            <div className="p-2 bg-primary-600 rounded-lg">
               <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 8l2 2 4-4" />
               </svg>
             </div>
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium text-gray-400 text-left">Today's Tasks</p>
-              <p className="text-2xl font-bold text-white text-left mt-1">{todayTasks.length}</p>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-400">Today's Tasks</p>
+              <p className="text-2xl font-bold text-white">{todayTasks.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-dark-800 rounded-lg p-6 border border-gray-700 w-full">
-          <div className="flex items-center justify-start gap-4">
-            <div className="p-3 bg-green-600 rounded-lg flex-shrink-0">
+        <div className="bg-dark-800 rounded-lg p-6 border border-gray-700">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-600 rounded-lg">
               <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
             </div>
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium text-gray-400 text-left">Upcoming Events</p>
-              <p className="text-2xl font-bold text-white text-left mt-1">{upcomingEvents.length}</p>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-400">Upcoming Events</p>
+              <p className="text-2xl font-bold text-white">{upcomingEvents.length}</p>
             </div>
           </div>
         </div>
 
-        <div className="bg-dark-800 rounded-lg p-6 border border-gray-700 w-full">
-          <div className="flex items-center justify-start gap-4">
-            <div className="p-3 bg-yellow-600 rounded-lg flex-shrink-0">
+        <div className="bg-dark-800 rounded-lg p-6 border border-gray-700">
+          <div className="flex items-center">
+            <div className="p-2 bg-yellow-600 rounded-lg">
               <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium text-gray-400 text-left">Pending Tasks</p>
-              <p className="text-2xl font-bold text-white text-left mt-1">{pendingTasks.length}</p>
+            <div className="ml-4">
+              <p className="text-sm font-medium text-gray-400">Pending Tasks</p>
+              <p className="text-2xl font-bold text-white">{pendingTasks.length}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Voice Interface Section */}
-      <div className="mb-8 bg-dark-800 rounded-lg border border-gray-700 p-6 w-full">
-        <div className="flex flex-col items-center justify-center">
-          <h2 className="text-xl font-semibold text-white mb-4 text-center">Voice Assistant</h2>
-          <div className="w-full flex justify-center">
-            <VoiceInterface
-              onTranscript={(text) => console.log('Transcript:', text)}
-              onResponse={(response) => console.log('Response:', response)}
-            />
-          </div>
+      <div className="mb-8 bg-dark-800 rounded-lg border border-gray-700 p-6">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-white mb-4">Voice Assistant</h2>
+          <VoiceInterface
+            onTranscript={(text) => console.log('Transcript:', text)}
+            onResponse={(response) => console.log('Response:', response)}
+          />
         </div>
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 w-full">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {/* Task Timeline */}
-        <div className="xl:col-span-1 w-full">
-          <div className="bg-dark-800 rounded-lg border border-gray-700 p-6 w-full">
+        <div className="xl:col-span-1">
+          <div className="bg-dark-800 rounded-lg border border-gray-700 p-6">
             <TaskTimeline maxItems={8} />
           </div>
         </div>
 
         {/* Calendar Integration */}
-        <div className="xl:col-span-2 w-full">
-          <div className="bg-dark-800 rounded-lg border border-gray-700 p-6 w-full">
+        <div className="xl:col-span-2">
+          <div className="bg-dark-800 rounded-lg border border-gray-700 p-6">
             <CalendarIntegrationView />
           </div>
         </div>
       </div>
 
       {/* AI Insights Section */}
-      <div className="mt-8 bg-dark-800 rounded-lg border border-gray-700 p-6 w-full">
+      <div className="mt-8 bg-dark-800 rounded-lg border border-gray-700 p-6">
         <AIInsightsDashboard />
       </div>
 

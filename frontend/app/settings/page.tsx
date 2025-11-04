@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { locales, getLocaleConfig } from '@/lib/utils';
-import { Language, UserSettings, NotificationPreferences } from '@/types';
+import { Language, UserSettings } from '@/types';
 
 export default function SettingsPage() {
   const { user, settings, updateUser, setSettings } = useAppStore();
@@ -16,39 +16,25 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'privacy' | 'integrations' | 'language'>('general');
 
-  // Notification preferences defaults
-  const notificationDefaults = {
-    email_notifications: true,
-    task_reminders: true,
-    ai_insights: true,
-    federated_learning: true
-  } as const;
-
   // Local state for form data
   const [formData, setFormData] = useState({
     language_preference: user?.language_preference || 'en-US' as Language,
-    whatsapp_opt_in: settings?.whatsapp_opt_in ?? true,
+    whatsapp_opt_in: settings?.whatsapp_opt_in || false,
     voice_training_consent: settings?.voice_training_consent || false,
-    calendar_sync_enabled: settings?.calendar_sync_enabled ?? true,
+    calendar_sync_enabled: settings?.calendar_sync_enabled || false,
     privacy_level: settings?.privacy_level || 'standard' as 'minimal' | 'standard' | 'enhanced',
-    notification_preferences: {
-      ...notificationDefaults,
-      ...settings?.notification_preferences
-    } satisfies NotificationPreferences
+    notification_preferences: settings?.notification_preferences || {}
   });
 
   useEffect(() => {
     if (user && settings) {
       setFormData({
         language_preference: user.language_preference,
-        whatsapp_opt_in: settings.whatsapp_opt_in ?? true,
+        whatsapp_opt_in: settings.whatsapp_opt_in,
         voice_training_consent: settings.voice_training_consent,
-        calendar_sync_enabled: settings.calendar_sync_enabled ?? true,
+        calendar_sync_enabled: settings.calendar_sync_enabled,
         privacy_level: settings.privacy_level,
-        notification_preferences: {
-          ...notificationDefaults,
-          ...settings.notification_preferences
-        } satisfies NotificationPreferences
+        notification_preferences: settings.notification_preferences
       });
     }
   }, [user, settings]);
@@ -210,7 +196,7 @@ export default function SettingsPage() {
                   <select
                     value={user?.timezone || 'UTC'}
                     onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
-                    className="w-full px-3 py-2"
+                    className="w-full px-3 py-2 bg-dark-700 border border-gray-600 rounded-lg text-white"
                   >
                     <option value="UTC">UTC</option>
                     <option value="America/New_York">Eastern Time</option>
@@ -425,7 +411,7 @@ export default function SettingsPage() {
                 <label className="flex items-center">
                   <input
                     type="checkbox"
-                    checked={formData.notification_preferences.federated_learning ?? true}
+                    checked={formData.notification_preferences.federated_learning !== false}
                     onChange={(e) => setFormData(prev => ({
                       ...prev,
                       notification_preferences: {

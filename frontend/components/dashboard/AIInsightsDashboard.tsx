@@ -196,22 +196,22 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
   return (
     <div className={className}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6 gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 flex-shrink-0">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-8 h-8">
             <DigitalAvatar isActive={isGenerating} isSpeaking={false} />
           </div>
-          <div className="text-left min-w-0">
-            <h2 className="text-xl font-semibold text-white text-left">AI Insights</h2>
-            <p className="text-gray-400 text-sm text-left mt-0.5">Personalized recommendations and patterns</p>
+          <div>
+            <h2 className="text-xl font-semibold text-white">AI Insights</h2>
+            <p className="text-gray-400 text-sm">Personalized recommendations and patterns</p>
           </div>
         </div>
         
-        <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex items-center space-x-3">
           <select
             value={selectedInsightType}
             onChange={(e) => setSelectedInsightType(e.target.value as any)}
-            className="px-3 py-1.5 text-sm text-left"
+            className="bg-dark-700 border border-gray-600 rounded px-3 py-1 text-sm text-white"
           >
             <option value="all">All Insights</option>
             <option value="productivity">Productivity</option>
@@ -223,7 +223,7 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
           <button
             onClick={refreshInsights}
             disabled={isGenerating}
-            className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm rounded transition-colors whitespace-nowrap"
+            className="px-3 py-1 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
           >
             {isGenerating ? 'Generating...' : 'Refresh'}
           </button>
@@ -244,25 +244,25 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
                 }
               `}
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 p-2 bg-dark-700 rounded-lg">
                   {getInsightIcon(insight.type)}
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0 text-left">
-                      <h3 className="text-sm font-medium text-white mb-1.5 text-left">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-white mb-1">
                         {insight.title}
                       </h3>
-                      <p className="text-sm text-gray-300 leading-relaxed text-left">
+                      <p className="text-sm text-gray-300 leading-relaxed">
                         {insight.description}
                       </p>
                     </div>
                     
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center space-x-2 ml-4">
                       {insight.actionable && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                           Actionable
                         </span>
                       )}
@@ -276,8 +276,8 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between gap-3 mt-4">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center space-x-2">
                       <span className={`
                         inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                         ${insight.type === 'productivity' ? 'bg-green-100 text-green-800' :
@@ -295,7 +295,7 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
                     </div>
                     
                     {insight.actionable && (
-                      <button className="text-xs text-primary-400 hover:text-primary-300 font-medium whitespace-nowrap flex-shrink-0">
+                      <button className="text-xs text-primary-400 hover:text-primary-300 font-medium">
                         Take Action →
                       </button>
                     )}
@@ -309,8 +309,8 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
             <div className="w-16 h-16 mx-auto mb-4">
               <DigitalAvatar isActive={false} isSpeaking={false} />
             </div>
-            <h3 className="text-lg font-medium text-white mb-2 text-center">Learning Your Patterns</h3>
-            <p className="text-gray-400 max-w-md mx-auto text-center">
+            <h3 className="text-lg font-medium text-white mb-2">Learning Your Patterns</h3>
+            <p className="text-gray-400 max-w-md mx-auto">
               The AI is analyzing your behavior to provide personalized insights. 
               Complete more tasks and events to unlock detailed recommendations.
             </p>
@@ -328,29 +328,29 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
       {filteredInsights.length > 0 && (
         <div className="mt-6 pt-4 border-t border-gray-700">
           <div className="grid grid-cols-4 gap-4 text-center">
-            <div className="text-center">
+            <div>
               <p className="text-lg font-bold text-white">
                 {insights.filter(i => i.actionable).length}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Actionable</p>
+              <p className="text-xs text-gray-400">Actionable</p>
             </div>
-            <div className="text-center">
+            <div>
               <p className="text-lg font-bold text-white">
                 {Math.round(insights.reduce((acc, i) => acc + i.confidence, 0) / insights.length * 100) || 0}%
               </p>
-              <p className="text-xs text-gray-400 mt-1">Avg Confidence</p>
+              <p className="text-xs text-gray-400">Avg Confidence</p>
             </div>
-            <div className="text-center">
+            <div>
               <p className="text-lg font-bold text-white">
                 {insights.filter(i => i.type === 'recommendation').length}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Recommendations</p>
+              <p className="text-xs text-gray-400">Recommendations</p>
             </div>
-            <div className="text-center">
+            <div>
               <p className="text-lg font-bold text-white">
                 {insights.filter(i => i.type === 'pattern').length}
               </p>
-              <p className="text-xs text-gray-400 mt-1">Patterns</p>
+              <p className="text-xs text-gray-400">Patterns</p>
             </div>
           </div>
         </div>

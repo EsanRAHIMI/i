@@ -22,8 +22,7 @@ export function useAuth() {
         setLoading(true);
         
         // Check if user is already authenticated
-        // Only access localStorage in browser environment
-        const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
+        const token = localStorage.getItem('auth_token');
         if (token) {
           try {
             const currentUser = await apiClient.getCurrentUser();
@@ -54,7 +53,7 @@ export function useAuth() {
             // Don't clear on network errors or temporary issues
             if (authError.response?.status === 401 || authError.response?.status === 403) {
               console.error('Auth token is invalid:', authError);
-              if (isMounted && typeof window !== 'undefined') {
+              if (isMounted) {
                 localStorage.removeItem('auth_token');
                 setUser(null);
               }
@@ -102,7 +101,6 @@ export function useAuth() {
       }
       
       // Double-check token is in localStorage (it should be set by apiClient.login)
-      // Only access localStorage in browser environment
       if (typeof window !== 'undefined') {
         const storedToken = localStorage.getItem('auth_token');
         if (!storedToken || storedToken !== token) {
@@ -243,9 +241,7 @@ export function useAuth() {
     } finally {
       setUser(null);
       setSettings(null);
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth_token');
-      }
+      localStorage.removeItem('auth_token');
     }
   };
 
