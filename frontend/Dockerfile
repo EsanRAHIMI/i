@@ -6,6 +6,7 @@
   FROM node:20-alpine AS builder
   WORKDIR /app
   ENV NEXT_TELEMETRY_DISABLED=1
+  # NODE_ENV را در builder تنظیم نکن تا devDependencies هم نصب شوند (برای build لازم است)
   RUN apk add --no-cache libc6-compat
   
   # اگر env عمومی لازم داری، همین‌جا پاس می‌گیرن (Dokploy -> Build Args)
@@ -46,6 +47,10 @@
   COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
   # اگر فایل/عکس عمومی داری:
   COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+  # کپی فایل‌های config برای PostCSS و Tailwind (در standalone mode لازم است)
+  COPY --from=builder --chown=nextjs:nodejs /app/postcss.config.js ./postcss.config.js
+  COPY --from=builder --chown=nextjs:nodejs /app/tailwind.config.js ./tailwind.config.js
+  COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./next.config.js
   
   USER nextjs
   EXPOSE 3000
