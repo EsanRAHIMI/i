@@ -1,5 +1,5 @@
 # =========================
-# Next.js 14 – Dockerfile (npm, no lockfile)
+# Next.js 14 (Node 20, Alpine) - Frontend
 # =========================
 
 # ---- Builder ----
@@ -8,19 +8,26 @@
   ENV NEXT_TELEMETRY_DISABLED=1
   RUN apk add --no-cache libc6-compat
   
-  # Build-time public envs (Dokploy -> Build Args)
+  # اگر env عمومی لازم داری، همین‌جا پاس می‌گیرن (Dokploy -> Build Args)
   ARG NEXT_PUBLIC_API_URL
   ARG NEXT_PUBLIC_WS_URL
   ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
   ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
   
-  # Install deps (dev deps needed for build)
-  COPY package*.json ./
-  RUN npm install --no-audit --no-fund
+  # فقط فایل‌های نصب را کپی کن تا cache بهتر عمل کند
+  COPY package.json package-lock.json ./
   
-  # Copy source (must include postcss.config.js & tailwind.config.js)
+  # اگر lock وجود داشت از ci استفاده کن، وگرنه نصب معمولی
+  # (در Dokploy چون الان lock داخل frontend داری، ci اجرا می‌شود)
+  RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+  
+  # بقیه سورس
   COPY . .
+  
+  # اطمینان از وجود public (بی‌ضرر)
   RUN mkdir -p /app/public
+  
+  # بیلد
   RUN npm run build
   
   # ---- Runtime (standalone) ----
@@ -31,24 +38,22 @@
       NEXT_TELEMETRY_DISABLED=1
   RUN apk add --no-cache libc6-compat curl
   
-  # Non-root user
+  # یوزر نان‌روت
   RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
   
-  # Copy runtime bits
-  # 1) Standalone server + static assets
+  # خروجی standalone
   COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
   COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-  # 2) Project files needed at runtime (fixes raw CSS resolution)
-  COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./next.config.js
-  COPY --from=builder --chown=nextjs:nodejs /app/app ./app
-  # 3) Public assets if you use them
-  # COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+  # اگر فایل/عکس عمومی داری:
+  COPY --from=builder --chown=nextjs:nodejs /app/public ./public
   
   USER nextjs
   EXPOSE 3000
   
+  # Healthcheck: اگر /api/health نداری، همون روت '/'
   HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -fsS http://localhost:3000/ || exit 1
+    CMD curl -f http://localhost:3000/ || exit 1
   
+  # Entry
   CMD ["node", "server.js"]
   
