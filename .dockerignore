@@ -1,0 +1,176 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+.next/
+out/
+build/
+dist/
+
+# Environment files
+.env*
+!.env.example
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Keys and certificates
+*.pem
+*.key
+*.crt
+keys/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+Jenkinsfile
+
+# Monitoring
+prometheus_data/
+grafana_data/
+
+# -------------------------
+
+# Local Docker artifacts
+docker-data/
+**/__init__.pyc
+
+# Compiled / cache files
+.mypy_cache/
+.pyre/
+.pytype/
+.prof/
+*.prof
+
+# Coverage & testing junk
+.coverage.*
+pytestdebug.log
+.tox/
+.nox/
+test-results/
+tests/__pycache__/
+
+# Local virtualenvs (in any folder)
+*/.venv/
+*/venv/
+
+# Backend build cache
+__pypackages__/
+pip-wheel-metadata/
+
+# Frontend dev cache
+.cache-loader/
+.storybook-out/
+.vite/
+.esbuild/
+bun.lockb
+
+# OS + Editor backup
+*.bak
+*.tmp
+*.old
+
+# Local service data
+uploads/
+media/
+staticfiles/
+__data__/
+__local__/
+
+# Mac docker temp mounts (avoids endless rebuilds)
+**/.VolumeIcon.icns
+**/.TemporaryItems
+
+# build context slimming
+__tests__/
+*.test.*
+*.spec.*
+coverage/
+.vscode/
+.git/
+.next/
+node_modules/
+
+node_modules
+.next
+.git
+.DS_Store
