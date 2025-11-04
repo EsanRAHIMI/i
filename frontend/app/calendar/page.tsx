@@ -46,7 +46,13 @@ export default function CalendarPage() {
       setError(null);
 
       // Use frontend callback URL - backend will handle OAuth and redirect back to frontend
-      const redirectUri = `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost'}/calendar/callback`;
+      const origin = typeof window !== 'undefined' 
+        ? window.location.origin 
+        : (process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || '');
+      if (!origin) {
+        throw new Error('Unable to determine origin for OAuth callback');
+      }
+      const redirectUri = `${origin}/calendar/callback`;
 
       // Start OAuth flow
       const { authorization_url } = await apiClient.connectCalendar(redirectUri);

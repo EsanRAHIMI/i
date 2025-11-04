@@ -19,8 +19,13 @@ interface UseWebSocketOptions {
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
+  if (!wsUrl && !options.url) {
+    throw new Error('NEXT_PUBLIC_WS_URL environment variable is not set and no URL provided in options');
+  }
+  
   const {
-    url = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws',
+    url = wsUrl!,
     protocols,
     onMessage,
     onError,

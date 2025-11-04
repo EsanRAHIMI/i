@@ -2,7 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   images: {
-    domains: ['localhost', 'aidepartment.net'],
+    domains: ['localhost', 'aidepartment.net', 'api.aidepartment.net'],
   },
   webpack: (config) => {
     config.externals.push({
@@ -10,6 +10,11 @@ const nextConfig = {
       'bufferutil': 'commonjs bufferutil',
     });
     return config;
+  },
+  // متغیرهای محیطی NEXT_PUBLIC_ باید در build time تنظیم شوند
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_WS_URL: process.env.NEXT_PUBLIC_WS_URL,
   },
 };
 

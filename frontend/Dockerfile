@@ -38,6 +38,11 @@
       PORT=3000 \
       HOSTNAME=0.0.0.0 \
       NEXT_TELEMETRY_DISABLED=1
+  # متغیرهای محیطی باید در runtime هم موجود باشند (برای runtime config)
+  ARG NEXT_PUBLIC_API_URL
+  ARG NEXT_PUBLIC_WS_URL
+  ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+  ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
   RUN apk add --no-cache libc6-compat curl
   
   # یوزر نان‌روت

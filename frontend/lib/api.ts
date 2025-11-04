@@ -5,8 +5,13 @@ class ApiClient {
   private client: AxiosInstance;
 
   constructor() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    if (!apiUrl) {
+      throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+    }
+    
     this.client = axios.create({
-      baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1',
+      baseURL: apiUrl,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
