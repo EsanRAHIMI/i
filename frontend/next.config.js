@@ -4,11 +4,26 @@ const nextConfig = {
   images: {
     domains: ['localhost', 'aidepartment.net', 'api.aidepartment.net'],
   },
-  webpack: (config) => {
+  webpack: (config, { isServer }) => {
     config.externals.push({
       'utf-8-validate': 'commonjs utf-8-validate',
       'bufferutil': 'commonjs bufferutil',
     });
+    
+    // Ensure proper module resolution for workspace setup
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+      };
+    }
+    
+    // Add resolve paths for workspace dependencies
+    config.resolve.modules = [
+      ...(config.resolve.modules || []),
+      require('path').resolve(__dirname, 'node_modules'),
+      require('path').resolve(__dirname, '../node_modules'),
+    ];
+    
     return config;
   },
   // متغیرهای محیطی NEXT_PUBLIC_ باید در build time تنظیم شوند

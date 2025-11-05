@@ -22,6 +22,9 @@
   # (در Dokploy چون الان lock داخل frontend داری، ci اجرا می‌شود)
   RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
   
+  # اطمینان از نصب lucide-react (fallback در صورت نیاز)
+  RUN npm list lucide-react >/dev/null 2>&1 || npm install lucide-react@latest --no-audit --no-fund
+  
   # بقیه سورس
   COPY . .
   

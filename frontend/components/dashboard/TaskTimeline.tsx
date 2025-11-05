@@ -158,22 +158,22 @@ export function TaskTimeline({ className, showDate, maxItems = 10 }: TaskTimelin
           <select
             value={selectedFilter}
             onChange={(e) => setSelectedFilter(e.target.value as any)}
-            className="bg-dark-700 border border-gray-600 rounded px-3 py-1 text-sm text-white"
+            className="bg-dark-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
           >
-            <option value="all">All Items</option>
-            <option value="task">Tasks Only</option>
-            <option value="event">Events Only</option>
+            <option value="all" className="bg-dark-800 text-gray-200">All Items</option>
+            <option value="task" className="bg-dark-800 text-gray-200">Tasks Only</option>
+            <option value="event" className="bg-dark-800 text-gray-200">Events Only</option>
           </select>
           
           <select
             value={selectedPriority}
             onChange={(e) => setSelectedPriority(e.target.value as any)}
-            className="bg-dark-700 border border-gray-600 rounded px-3 py-1 text-sm text-white"
+            className="bg-dark-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
           >
-            <option value="all">All Priorities</option>
-            <option value="high">High Priority</option>
-            <option value="medium">Medium Priority</option>
-            <option value="low">Low Priority</option>
+            <option value="all" className="bg-dark-800 text-gray-200">All Priorities</option>
+            <option value="high" className="bg-dark-800 text-gray-200">High Priority</option>
+            <option value="medium" className="bg-dark-800 text-gray-200">Medium Priority</option>
+            <option value="low" className="bg-dark-800 text-gray-200">Low Priority</option>
           </select>
         </div>
       </div>

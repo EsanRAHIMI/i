@@ -12,13 +12,16 @@ import { VoiceActivityIndicator } from '@/components/voice/VoiceActivityIndicato
 import { TaskTimeline } from '@/components/dashboard/TaskTimeline';
 import { AIInsightsDashboard } from '@/components/dashboard/AIInsightsDashboard';
 import { CalendarIntegrationView } from '@/components/dashboard/CalendarIntegrationView';
+import FloatingGlassDock from '@/components/voice/FloatingGlassDock';
 import { formatTime, getRelativeTime } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 export default function DashboardPage() {
   const { user, tasks, events, setTasks, setEvents, voiceSession } = useAppStore();
   const [isLoading, setIsLoading] = useState(true);
   const [todayTasks, setTodayTasks] = useState<any[]>([]);
   const [showAvatarCustomization, setShowAvatarCustomization] = useState(false);
+  const [agentOpen, setAgentOpen] = useState(false);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -30,7 +33,7 @@ export default function DashboardPage() {
         const [tasksData, eventsData] = await Promise.all([
           apiClient.getTodayTasks().catch((err) => {
             // Log but don't throw - tasks might not be available yet
-            console.warn('Failed to load tasks:', err);
+            logger.debug('Failed to load tasks (this is OK if backend is not ready):', err);
             return [];
           }),
           apiClient.getEvents(
@@ -38,7 +41,7 @@ export default function DashboardPage() {
             new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
           ).catch((err) => {
             // Log but don't throw - calendar might not be connected yet
-            console.warn('Failed to load calendar events:', err);
+            logger.debug('Failed to load calendar events (this is OK if calendar is not connected):', err);
             return [];
           })
         ]);
@@ -47,7 +50,7 @@ export default function DashboardPage() {
         setTasks(tasksData);
         setEvents(eventsData);
       } catch (error) {
-        console.error('Failed to load dashboard data:', error);
+        logger.error('Failed to load dashboard data:', error);
       } finally {
         setIsLoading(false);
       }
@@ -147,8 +150,8 @@ export default function DashboardPage() {
         <div className="text-center">
           <h2 className="text-xl font-semibold text-white mb-4">Voice Assistant</h2>
           <VoiceInterface
-            onTranscript={(text) => console.log('Transcript:', text)}
-            onResponse={(response) => console.log('Response:', response)}
+            onTranscript={(text) => logger.debug('Transcript:', text)}
+            onResponse={(response) => logger.debug('Response:', response)}
           />
         </div>
       </div>
@@ -180,11 +183,25 @@ export default function DashboardPage() {
         <AvatarCustomization
           onClose={() => setShowAvatarCustomization(false)}
           onSave={(avatarData) => {
-            console.log('Avatar saved:', avatarData);
+            logger.info('Avatar saved successfully');
             setShowAvatarCustomization(false);
           }}
         />
       )}
+
+      {/* Floating Glass Dock - Voice Agent Interface */}
+      <FloatingGlassDock
+        agentOpen={agentOpen}
+        onToggleAgent={setAgentOpen}
+        onLeftAction={() => {
+          // Navigate to calendar or open calendar view
+          logger.debug('Calendar action clicked');
+        }}
+        onRightAction={() => {
+          // AI suggestions action
+          logger.debug('AI suggestions clicked');
+        }}
+      />
     </div>
   );
 }

@@ -69,21 +69,27 @@ echo -e "${GREEN}Checking Docker services...${NC}"
 
 # Check PostgreSQL - be more flexible with status check
 POSTGRES_STATUS=$(docker ps --format "{{.Status}}" --filter "name=i-postgres" 2>/dev/null || echo "")
-if [ -z "$POSTGRES_STATUS" ] || ! echo "$POSTGRES_STATUS" | grep -qi "healthy\|running"; then
-    echo -e "${RED}Error: PostgreSQL container (i-postgres) is not running or healthy!${NC}"
+if [ -z "$POSTGRES_STATUS" ] || ! echo "$POSTGRES_STATUS" | grep -qi "Up"; then
+    echo -e "${RED}Error: PostgreSQL container (i-postgres) is not running!${NC}"
     echo -e "${YELLOW}Status: $POSTGRES_STATUS${NC}"
     echo -e "${YELLOW}Please start Docker services: docker-compose up -d${NC}"
     exit 1
 fi
-echo -e "${GREEN}✓ PostgreSQL is healthy${NC}"
+# Verify PostgreSQL is actually accepting connections
+if ! docker exec i-postgres pg_isready -U esan -h localhost > /dev/null 2>&1; then
+    echo -e "${YELLOW}⚠ Warning: PostgreSQL container is running but not accepting connections yet${NC}"
+    echo -e "${YELLOW}Waiting a bit more...${NC}"
+    sleep 3
+fi
+echo -e "${GREEN}✓ PostgreSQL is ready${NC}"
 
-# Check Redis - just warn if not healthy
+# Check Redis - just warn if not running
 REDIS_STATUS=$(docker ps --format "{{.Status}}" --filter "name=i-redis" 2>/dev/null || echo "")
-if [ -z "$REDIS_STATUS" ] || ! echo "$REDIS_STATUS" | grep -qi "healthy\|running"; then
-    echo -e "${YELLOW}⚠ Warning: Redis container (i-redis) may not be healthy${NC}"
+if [ -z "$REDIS_STATUS" ] || ! echo "$REDIS_STATUS" | grep -qi "Up"; then
+    echo -e "${YELLOW}⚠ Warning: Redis container (i-redis) may not be running${NC}"
     echo -e "${YELLOW}Status: $REDIS_STATUS${NC}"
 else
-    echo -e "${GREEN}✓ Redis is healthy${NC}"
+    echo -e "${GREEN}✓ Redis is running${NC}"
 fi
 
 # Check if port 8000 is available

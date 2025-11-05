@@ -85,3 +85,49 @@ a {
   );
   background-size: 200px 100%;
 }
+
+/* Select and Option styling for dark theme */
+select {
+  background-color: #1e293b; /* dark-800 */
+  color: #e2e8f0; /* light text */
+  border-color: #475569; /* gray-600 */
+}
+
+select:focus {
+  outline: none;
+  border-color: #6366f1; /* primary-500 */
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+select option {
+  background-color: #1e293b; /* dark-800 */
+  color: #e2e8f0; /* light text */
+  padding: 0.5rem;
+}
+
+select option:hover {
+  background-color: #334155; /* darker gray */
+}
+
+select option:checked {
+  background-color: #6366f1; /* primary-500 */
+  color: #ffffff;
+}
+
+/* Date input styling for dark theme */
+input[type="date"] {
+  background-color: #1e293b; /* dark-800 */
+  color: #e2e8f0; /* light text */
+  border-color: #475569; /* gray-600 */
+}
+
+input[type="date"]:focus {
+  outline: none;
+  border-color: #6366f1; /* primary-500 */
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}

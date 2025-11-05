@@ -4,7 +4,8 @@
   "description": "Next.js frontend for i Assistant",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node check-env.js && next dev",
+    "dev:skip-env-check": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -12,7 +13,8 @@
     "type-check": "tsc --noEmit",
     "test": "vitest --run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "check-env": "node check-env.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.0",
@@ -23,6 +25,7 @@
     "axios": "^1.6.0",
     "clsx": "^2.0.0",
     "framer-motion": "^10.16.0",
+    "lucide-react": "^0.552.0",
     "next": "^14.0.0",
     "next-auth": "^4.24.0",
     "postcss": "^8.4.0",

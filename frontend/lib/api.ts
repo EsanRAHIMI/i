@@ -7,7 +7,9 @@ class ApiClient {
   constructor() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl) {
-      throw new Error('NEXT_PUBLIC_API_URL environment variable is not set');
+      const errorMsg = 'NEXT_PUBLIC_API_URL environment variable is not set. Please create a .env.local file in the frontend directory with NEXT_PUBLIC_API_URL=http://localhost:8000';
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
     
     this.client = axios.create({
@@ -170,6 +172,16 @@ class ApiClient {
 
   async updateUser(updates: Partial<User>): Promise<User> {
     const response = await this.client.patch('/auth/me', updates);
+    return response.data;
+  }
+
+  async uploadAvatar(file: File): Promise<User> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await this.client.post('/auth/avatar/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return response.data;
   }
 
