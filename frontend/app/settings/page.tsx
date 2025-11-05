@@ -196,17 +196,17 @@ export default function SettingsPage() {
                   <select
                     value={user?.timezone || 'UTC'}
                     onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
-                    className="w-full px-3 py-2 bg-dark-700 border border-gray-600 rounded-lg text-white"
+                    className="w-full px-3 py-2 bg-dark-800 border border-gray-600 rounded-lg text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
                   >
-                    <option value="UTC">UTC</option>
-                    <option value="America/New_York">Eastern Time</option>
-                    <option value="America/Chicago">Central Time</option>
-                    <option value="America/Denver">Mountain Time</option>
-                    <option value="America/Los_Angeles">Pacific Time</option>
-                    <option value="Europe/London">London</option>
-                    <option value="Europe/Paris">Paris</option>
-                    <option value="Asia/Dubai">Dubai</option>
-                    <option value="Asia/Tehran">Tehran</option>
+                    <option value="UTC" className="bg-dark-800 text-gray-200">UTC</option>
+                    <option value="America/New_York" className="bg-dark-800 text-gray-200">Eastern Time</option>
+                    <option value="America/Chicago" className="bg-dark-800 text-gray-200">Central Time</option>
+                    <option value="America/Denver" className="bg-dark-800 text-gray-200">Mountain Time</option>
+                    <option value="America/Los_Angeles" className="bg-dark-800 text-gray-200">Pacific Time</option>
+                    <option value="Europe/London" className="bg-dark-800 text-gray-200">London</option>
+                    <option value="Europe/Paris" className="bg-dark-800 text-gray-200">Paris</option>
+                    <option value="Asia/Dubai" className="bg-dark-800 text-gray-200">Dubai</option>
+                    <option value="Asia/Tehran" className="bg-dark-800 text-gray-200">Tehran</option>
                   </select>
                 </div>
               </div>

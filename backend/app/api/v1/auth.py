@@ -1,10 +1,15 @@
 """
 Authentication API endpoints.
 """
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 import structlog
+import uuid
+import os
+from pathlib import Path
+from typing import Optional
 
 from ...database.base import get_db
 from ...services.auth import auth_service
@@ -19,6 +24,14 @@ logger = structlog.get_logger(__name__)
 security = HTTPBearer()
 
 router = APIRouter()
+
+# Avatar upload directory
+AVATAR_UPLOAD_DIR = Path(os.getenv("AVATAR_UPLOAD_DIR", os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads", "avatars")))
+AVATAR_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+# Allowed image MIME types
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"}
+MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5MB
 
 
 def get_client_ip(request: Request) -> str:
@@ -411,4 +424,131 @@ async def change_password(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Password change failed"
+        )
+
+
+@router.post("/avatar/upload", response_model=UserResponse)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    request: Request = None,
+    db: Session = Depends(get_db)
+):
+    """Upload avatar image for current user."""
+    try:
+        user_id = getattr(request.state, 'user_id', None)
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required"
+            )
+        
+        user = auth_service.get_user_by_id(db, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        # Validate file type
+        if file.content_type not in ALLOWED_IMAGE_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid file type. Allowed types: {', '.join(ALLOWED_IMAGE_TYPES)}"
+            )
+        
+        # Read file content
+        content = await file.read()
+        
+        # Validate file size
+        if len(content) > MAX_AVATAR_SIZE:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File too large. Maximum size: {MAX_AVATAR_SIZE / (1024 * 1024)}MB"
+            )
+        
+        # Generate unique filename
+        file_extension = Path(file.filename).suffix if file.filename else ".jpg"
+        if not file_extension:
+            file_extension = ".jpg"
+        
+        avatar_filename = f"{user_id}_{uuid.uuid4().hex}{file_extension}"
+        avatar_path = AVATAR_UPLOAD_DIR / avatar_filename
+        
+        # Save file
+        with open(avatar_path, "wb") as f:
+            f.write(content)
+        
+        # Generate avatar URL (relative to API base)
+        avatar_url = f"/api/v1/auth/avatar/{avatar_filename}"
+        
+        # Delete old avatar if exists
+        if user.avatar_url:
+            old_filename = user.avatar_url.split("/")[-1]
+            old_path = AVATAR_UPLOAD_DIR / old_filename
+            if old_path.exists():
+                try:
+                    old_path.unlink()
+                except Exception as e:
+                    logger.warning(f"Failed to delete old avatar: {e}")
+        
+        # Update user avatar URL
+        user.avatar_url = avatar_url
+        db.commit()
+        db.refresh(user)
+        
+        logger.info("Avatar uploaded successfully", user_id=user_id, avatar_url=avatar_url)
+        
+        return UserResponse(
+            id=str(user.id),
+            email=user.email,
+            avatar_url=user.avatar_url,
+            timezone=user.timezone,
+            language_preference=user.language_preference,
+            created_at=user.created_at
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Avatar upload error", error=str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to upload avatar"
+        )
+
+
+@router.get("/avatar/{filename}")
+async def get_avatar(filename: str):
+    """Get avatar image file."""
+    try:
+        avatar_path = AVATAR_UPLOAD_DIR / filename
+        
+        if not avatar_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Avatar not found"
+            )
+        
+        # Determine content type based on file extension
+        content_type = "image/jpeg"
+        if filename.endswith(".png"):
+            content_type = "image/png"
+        elif filename.endswith(".gif"):
+            content_type = "image/gif"
+        elif filename.endswith(".webp"):
+            content_type = "image/webp"
+        
+        return FileResponse(
+            path=avatar_path,
+            media_type=content_type,
+            filename=filename
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Avatar retrieval failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve avatar"
         )

@@ -6,7 +6,7 @@ import time
 from contextlib import asynccontextmanager
 from typing import Optional
 
-from fastapi import FastAPI, Request, Response, HTTPException, Depends
+from fastapi import FastAPI, Request, Response, HTTPException, Depends, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -353,6 +353,63 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 # Include API routers
 from .api.v1 import api_router
 app.include_router(api_router, prefix="/api/v1")
+
+
+# WebSocket alias endpoint /ws -> /api/v1/voice/stream/{session_id}
+@app.websocket("/ws")
+async def websocket_alias(websocket: WebSocket):
+    """
+    WebSocket alias endpoint that redirects to voice/stream.
+    Validates JWT token here and passes only websocket and session_id.
+    
+    Usage: ws://localhost:8000/ws?token=<JWT>&session_id=<session_id>
+    """
+    import jwt
+    from .services.auth import auth_service
+    from .config import settings
+    
+    # Extract query parameters from WebSocket URL
+    query_params = dict(websocket.query_params)
+    token = query_params.get("token")
+    session_id = query_params.get("session_id", "default")
+    
+    # Validate JWT token here (before forwarding)
+    user_id = None
+    if token:
+        if not auth_service.public_key:
+            logger.error("JWT public key is not available")
+            await websocket.close(code=1011, reason="Authentication service unavailable")
+            return
+        
+        try:
+            payload = jwt.decode(
+                token,
+                auth_service.public_key,
+                algorithms=[settings.JWT_ALGORITHM],
+                options={"verify_exp": True}
+            )
+            user_id = payload.get("sub")
+            logger.info(
+                f"WebSocket alias authentication successful - user_id={user_id}, session_id={session_id}"
+            )
+        except jwt.ExpiredSignatureError:
+            logger.warning(f"JWT token expired for WebSocket alias - session_id={session_id}")
+            await websocket.close(code=1008, reason="Token expired")
+            return
+        except jwt.InvalidTokenError as e:
+            logger.warning(f"Invalid JWT token for WebSocket alias - session_id={session_id}, error={e}")
+            await websocket.close(code=1008, reason="Invalid token")
+            return
+        except Exception as e:
+            logger.error(f"JWT validation error for WebSocket alias - session_id={session_id}, error={e}", exc_info=True)
+            await websocket.close(code=1011, reason="Authentication error")
+            return
+    
+    # Forward to voice/stream endpoint (token already validated, only pass session_id)
+    from .api.v1.voice import voice_stream_internal
+    
+    # Call voice_stream_internal with validated user_id
+    await voice_stream_internal(websocket, session_id=session_id, user_id=user_id)
 
 
 if __name__ == "__main__":

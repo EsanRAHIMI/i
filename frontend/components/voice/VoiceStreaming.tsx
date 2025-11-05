@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { useAppStore } from '@/store/useAppStore';
 import { DigitalAvatar } from '@/components/avatar/DigitalAvatar';
+import { logger } from '@/lib/logger';
 
 interface VoiceStreamingProps {
   className?: string;
@@ -61,13 +62,14 @@ export function VoiceStreaming({ className, onTranscript, onResponse }: VoiceStr
           break;
           
         case 'error':
-          console.error('Voice streaming error:', message.data);
+          logger.error('Voice streaming error:', message.data);
           stopStreaming();
           break;
       }
     },
     onError: (error) => {
-      console.error('WebSocket error:', error);
+      // WebSocket errors are handled by useWebSocket hook - no need to log here
+      // This prevents duplicate error messages
     }
   });
 

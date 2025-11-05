@@ -211,13 +211,13 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
           <select
             value={selectedInsightType}
             onChange={(e) => setSelectedInsightType(e.target.value as any)}
-            className="bg-dark-700 border border-gray-600 rounded px-3 py-1 text-sm text-white"
+            className="bg-dark-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
           >
-            <option value="all">All Insights</option>
-            <option value="productivity">Productivity</option>
-            <option value="schedule">Schedule</option>
-            <option value="recommendation">Recommendations</option>
-            <option value="pattern">Patterns</option>
+            <option value="all" className="bg-dark-800 text-gray-200">All Insights</option>
+            <option value="productivity" className="bg-dark-800 text-gray-200">Productivity</option>
+            <option value="schedule" className="bg-dark-800 text-gray-200">Schedule</option>
+            <option value="recommendation" className="bg-dark-800 text-gray-200">Recommendations</option>
+            <option value="pattern" className="bg-dark-800 text-gray-200">Patterns</option>
           </select>
           
           <button

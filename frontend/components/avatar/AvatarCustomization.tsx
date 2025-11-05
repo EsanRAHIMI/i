@@ -78,17 +78,17 @@ export function AvatarCustomization({ onClose, onSave }: AvatarCustomizationProp
       setIsLoading(true);
       setError(null);
 
-      // Create form data for upload
-      const formData = new FormData();
-      formData.append('selfie', selectedFile);
+      // Upload avatar to server
+      const updatedUser = await apiClient.uploadAvatar(selectedFile);
 
-      // In a real implementation, this would call an avatar generation API
-      // For now, we'll simulate the process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Update user in store
+      if (updatedUser && updatedUser.avatar_url) {
+        await updateUser({ avatar_url: updatedUser.avatar_url });
+      }
 
-      // Mock avatar data - in reality this would come from facial recognition/3D modeling
+      // Prepare avatar data for callback
       const avatarData = {
-        avatar_url: previewImage,
+        avatar_url: updatedUser.avatar_url || previewImage,
         facial_features: {
           eye_color: 'brown',
           hair_color: 'dark',
@@ -98,15 +98,12 @@ export function AvatarCustomization({ onClose, onSave }: AvatarCustomizationProp
         generated_at: new Date().toISOString()
       };
 
-      // Update user profile
-      if (user && avatarData.avatar_url) {
-        await updateUser({ avatar_url: avatarData.avatar_url });
-      }
-
       onSave?.(avatarData);
       onClose?.();
     } catch (err: any) {
-      setError(err.message || 'Failed to process avatar');
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to upload avatar';
+      setError(errorMessage);
+      console.error('Avatar upload error:', err);
     } finally {
       setIsLoading(false);
     }

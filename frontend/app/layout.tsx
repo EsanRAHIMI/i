@@ -5,6 +5,11 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'i Assistant - Your Intelligent AI Life Assistant',
   description: 'Next-generation Agentic AI Life Assistant designed to act as your conscious digital twin',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -69,24 +69,10 @@ export default function LoginPage() {
 
     try {
       await login(emailValue, passwordValue);
-      
-      // Wait longer to ensure token is saved to localStorage
-      // and all async operations complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Verify token is in localStorage before redirecting
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        console.error('Token verification failed. Token not found in localStorage.');
-        setError('خطا در ذخیره اطلاعات احراز هویت. لطفاً دوباره تلاش کنید.');
-        return;
-      }
-      
-      // Use window.location.href for a full page reload to ensure clean state
-      // This ensures localStorage is properly available
+      // Redirect immediately after successful login
+      // Don't wait for state update - redirect based on successful API call
       window.location.href = '/dashboard';
     } catch (err: any) {
-      console.error('Login error:', err);
       setError(err.message || 'ورود ناموفق بود');
       // isLoading is managed by useAuth hook, no need to set it manually
     }

@@ -173,6 +173,16 @@ class ApiClient {
     return response.data;
   }
 
+  async uploadAvatar(file: File): Promise<User> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await this.client.post('/auth/avatar/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
   // Settings endpoints
   async getUserSettings(): Promise<UserSettings> {
     const response = await this.client.get('/auth/settings');
