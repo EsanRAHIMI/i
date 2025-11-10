@@ -24,8 +24,53 @@ class ApiClient {
     this.client.interceptors.request.use(
       (config) => {
         const token = this.getAuthToken();
+        
+        // ALWAYS set Authorization header first, before any other modifications
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+        
+        // For multipart/form-data requests, don't override Content-Type
+        // Let axios/browser set it automatically with boundary
+        if (config.data instanceof FormData) {
+          console.log('=== REQUEST INTERCEPTOR - FormData detected ===');
+          console.log('Token available:', !!token);
+          console.log('Initial headers:', Object.keys(config.headers || {}));
+          console.log('Initial Authorization:', config.headers?.Authorization ? 'Present' : 'Missing');
+          
+          // CRITICAL: Set Authorization BEFORE deleting Content-Type
+          // This ensures it's not lost during header manipulation
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+            console.log('Authorization set to:', config.headers.Authorization.substring(0, 30) + '...');
+          }
+          
+          // Delete Content-Type header to let browser set it with boundary
+          // This is important for multipart/form-data requests
+          delete config.headers['Content-Type'];
+          delete config.headers.common?.['Content-Type'];
+          
+          // Ensure axios doesn't add it back
+          if (config.headers && config.headers['Content-Type'] === 'application/json') {
+            delete config.headers['Content-Type'];
+          }
+          
+          // FINAL CHECK: Ensure Authorization is still there after all deletions
+          if (token && !config.headers.Authorization) {
+            console.error('⚠️ Authorization header was lost! Restoring...');
+            config.headers.Authorization = `Bearer ${token}`;
+          }
+          
+          // Log all headers for debugging
+          console.log('=== AFTER HEADER MANIPULATION ===');
+          console.log('Authorization header:', config.headers.Authorization ? '✅ Present' : '❌ Missing');
+          if (config.headers.Authorization && typeof config.headers.Authorization === 'string') {
+            console.log('Authorization value:', config.headers.Authorization.substring(0, 50) + '...');
+          }
+          console.log('All headers keys:', Object.keys(config.headers));
+          console.log('URL:', config.url);
+          console.log('Method:', config.method);
+          console.log('Full URL:', (config.baseURL || '') + (config.url || ''));
         }
         return config;
       },
@@ -62,15 +107,19 @@ class ApiClient {
           const isCalendarOrTaskRequest = requestUrl.includes('/calendar/') || 
                                          requestUrl.includes('/tasks/');
           
+          // Avatar upload endpoint - don't redirect on 401, just show error
+          const isAvatarUpload = requestUrl.includes('/auth/avatar/upload');
+          
           // Don't clear token if:
           // 1. We're on an auth page
           // 2. It's an auth endpoint request
           // 3. We have a token AND it's an initialization request (might be timing issue)
           // 4. We're on dashboard and just logged in (give it time to initialize)
           // 5. We're on dashboard and it's a calendar/tasks request (these might fail if calendar not connected)
+          // 6. It's an avatar upload request (let the component handle the error)
           const isDashboardInitialization = path === '/dashboard' && hasToken && isInitializationRequest;
           const isDashboardCalendarRequest = path === '/dashboard' && hasToken && isCalendarOrTaskRequest;
-          const shouldPreserveToken = isAuthPage || isAuthEndpoint || isDashboardInitialization || isDashboardCalendarRequest;
+          const shouldPreserveToken = isAuthPage || isAuthEndpoint || isDashboardInitialization || isDashboardCalendarRequest || isAvatarUpload;
           
           if (!shouldPreserveToken) {
             // Clear token only if we're not in an auth flow and not during initialization
@@ -179,10 +228,56 @@ class ApiClient {
     const formData = new FormData();
     formData.append('file', file);
     
-    const response = await this.client.post('/auth/avatar/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
+    const token = this.getAuthToken();
+    console.log('=== AVATAR UPLOAD DEBUG ===');
+    console.log('Uploading avatar file:', file.name, file.size, file.type);
+    console.log('FormData entries:', Array.from(formData.entries()));
+    console.log('Auth token present:', !!token);
+    if (token) {
+      console.log('Token preview:', token.substring(0, 30) + '...');
+      console.log('Full token length:', token.length);
+    }
+    
+    // Use axios but with explicit config to handle FormData correctly
+    // The request interceptor will handle Content-Type and Authorization
+    const config: any = {
+      headers: {
+        // Authorization will be set by the interceptor, but we set it explicitly here too
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      // Don't set Content-Type - let browser set it with boundary for multipart/form-data
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+    };
+    
+    console.log('Uploading with axios, URL will be: /auth/avatar/upload');
+    console.log('Config headers keys:', Object.keys(config.headers));
+    console.log('Token in config:', !!config.headers.Authorization);
+    console.log('Config headers object:', JSON.stringify(config.headers, null, 2));
+    console.log('Axios baseURL:', this.client.defaults.baseURL);
+    console.log('Full URL will be:', `${this.client.defaults.baseURL}/auth/avatar/upload`);
+    
+    try {
+      console.log('=== SENDING REQUEST ===');
+      const response = await this.client.post('/auth/avatar/upload', formData, config);
+      console.log('=== UPLOAD SUCCESS ===');
+      console.log('Upload successful, response:', response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error('=== UPLOAD FAILED ===');
+      console.error('Status:', error.response?.status);
+      console.error('Status text:', error.response?.statusText);
+      console.error('Response data:', error.response?.data);
+      console.error('Request config:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers,
+        baseURL: error.config?.baseURL,
+        fullURL: error.config?.baseURL + error.config?.url,
+      });
+      console.error('Error message:', error.message);
+      throw error;
+    }
   }
 
   // Settings endpoints

@@ -1,3 +1,4 @@
+// frontend/components/voice/FloatingGlassDock.tsx
 'use client';
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import dynamic from 'next/dynamic';

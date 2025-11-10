@@ -1,3 +1,4 @@
+# backend/app/api/v1/`voice.py`
 """
 Voice processing API endpoints for STT and TTS functionality.
 """
@@ -374,84 +375,100 @@ async def voice_stream(websocket: WebSocket, session_id: str):
         while True:
             # Receive message from client
             data = await websocket.receive_json()
-            message = WebSocketMessage(**data)
+            message_type = data.get("type")
+            message_data = data.get("data", {})
             
-            if message.type == "audio_chunk":
-                # Process audio chunk
-                try:
-                    audio_data = base64.b64decode(message.data.get("audio_data", ""))
-                    
-                    if message.data.get("is_final", False):
-                        # Process complete audio
-                        result = await stt_service.transcribe_audio(
-                            audio_data=audio_data,
-                            user_id=message.data.get("user_id")
-                        )
-                        
-                        # Send transcription result
-                        await manager.send_message(session_id, {
-                            "type": "transcription_result",
-                            "data": result,
-                            "session_id": session_id,
-                            "timestamp": time.time()
-                        })
-                    else:
-                        # Send acknowledgment for chunk
-                        await manager.send_message(session_id, {
-                            "type": "chunk_received",
-                            "data": {"chunk_id": message.data.get("chunk_id")},
-                            "session_id": session_id,
-                            "timestamp": time.time()
-                        })
-                        
-                except Exception as e:
-                    # Send error message
-                    await manager.send_message(session_id, {
-                        "type": "error",
-                        "data": {
-                            "error": str(e),
-                            "error_code": "PROCESSING_ERROR"
-                        },
-                        "session_id": session_id,
-                        "timestamp": time.time()
-                    })
+            # ✅ Handle voice_start
+            if message_type == "voice_start":
+                logger.info(f"Voice session started: {session_id}")
+                await manager.send_message(session_id, {
+                    "type": "session_started",
+                    "data": {"session_id": session_id},
+                    "timestamp": time.time()
+                })
             
-            elif message.type == "tts_request":
-                # Process TTS request
+            # ✅ Handle voice_data (streaming audio chunks)
+            elif message_type == "voice_data":
                 try:
-                    text = message.data.get("text", "")
-                    user_id = message.data.get("user_id")
+                    # Extract audio data from the message
+                    audio_array = message_data.get("audio", [])
+                    audio_bytes = bytes(audio_array)
                     
-                    audio_data, metadata = await tts_orchestrator.synthesize_speech(
-                        text=text,
-                        user_id=user_id
-                    )
-                    
-                    # Send TTS result
+                    # Send partial transcription (simulated for now)
                     await manager.send_message(session_id, {
-                        "type": "tts_result",
+                        "type": "transcript_partial",
                         "data": {
-                            "audio_data": base64.b64encode(audio_data).decode(),
-                            "metadata": metadata
+                            "text": "Listening...",  # Replace with actual STT
+                            "timestamp": time.time()
                         },
-                        "session_id": session_id,
                         "timestamp": time.time()
                     })
                     
                 except Exception as e:
-                    # Send error message
+                    logger.error(f"Voice data processing error: {e}")
                     await manager.send_message(session_id, {
                         "type": "error",
                         "data": {
                             "error": str(e),
-                            "error_code": "TTS_ERROR"
+                            "error_code": "VOICE_DATA_ERROR"
                         },
-                        "session_id": session_id,
                         "timestamp": time.time()
                     })
+            
+            # ✅ Handle voice_end
+            elif message_type == "voice_end":
+                try:
+                    logger.info(f"Voice session ended: {session_id}")
+                    
+                    # Process final transcription
+                    # TODO: Implement actual STT processing here
+                    
+                    await manager.send_message(session_id, {
+                        "type": "transcript_final",
+                        "data": {
+                            "text": "Transcription completed",
+                            "confidence": 0.95,
+                            "timestamp": time.time()
+                        },
+                        "timestamp": time.time()
+                    })
+                    
+                    # Send agent response
+                    await manager.send_message(session_id, {
+                        "type": "agent_response",
+                        "data": {
+                            "text": "I heard you!",
+                            "audio_url": None
+                        },
+                        "timestamp": time.time()
+                    })
+                    
+                except Exception as e:
+                    logger.error(f"Voice end processing error: {e}")
+                    await manager.send_message(session_id, {
+                        "type": "error",
+                        "data": {
+                            "error": str(e),
+                            "error_code": "VOICE_END_ERROR"
+                        },
+                        "timestamp": time.time()
+                    })
+            
+            # ✅ Handle unknown message types
+            else:
+                logger.warning(f"Unknown message type: {message_type}")
+                await manager.send_message(session_id, {
+                    "type": "error",
+                    "data": {
+                        "error": f"Unknown message type: {message_type}",
+                        "error_code": "UNKNOWN_MESSAGE_TYPE"
+                    },
+                    "timestamp": time.time()
+                })
             
     except WebSocketDisconnect:
         manager.disconnect(session_id)
+        logger.info(f"WebSocket disconnected: {session_id}")
     except Exception as e:
         logger.error(f"WebSocket error for session {session_id}: {e}")
         manager.disconnect(session_id)

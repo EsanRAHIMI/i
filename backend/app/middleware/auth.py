@@ -42,6 +42,11 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         "/favicon"
     ]
     
+    # Paths that should be public (GET requests only, not POST/PUT/DELETE)
+    PUBLIC_GET_PATHS = [
+        "/api/v1/auth/avatar/"  # Avatar images should be publicly accessible (GET only)
+    ]
+    
     # Auth endpoints that don't require authentication (public endpoints)
     PUBLIC_AUTH_ENDPOINTS = [
         "/api/v1/auth/register",
@@ -66,15 +71,30 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
     def extract_token(self, request: Request) -> Optional[str]:
         """Extract JWT token from Authorization header."""
         authorization = request.headers.get("Authorization")
+        logger.debug(
+            "🔑 Extracting token",
+            has_authorization=bool(authorization),
+            authorization_preview=authorization[:50] + "..." if authorization else None,
+            authorization_type=type(authorization).__name__ if authorization else None
+        )
         if not authorization:
+            logger.debug("❌ No Authorization header found")
             return None
         
         try:
             scheme, token = authorization.split(" ", 1)
+            logger.debug(
+                "✅ Token extracted",
+                scheme=scheme,
+                token_preview=token[:30] + "..." if token else None,
+                token_length=len(token) if token else 0
+            )
             if scheme.lower() != "bearer":
+                logger.warning(f"⚠️ Invalid scheme: {scheme}")
                 return None
             return token
-        except ValueError:
+        except ValueError as e:
+            logger.warning(f"⚠️ Error splitting Authorization header: {e}")
             return None
     
     def validate_token(self, token: str) -> Optional[dict]:
@@ -114,6 +134,13 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
             if path.startswith(prefix):
                 return False
         
+        # Skip authentication for public GET requests (e.g., avatar images)
+        # But require authentication for POST/PUT/DELETE requests
+        if request.method == "GET":
+            for public_path in self.PUBLIC_GET_PATHS:
+                if path.startswith(public_path):
+                    return False
+        
         # Skip authentication for public auth endpoints (login, register, refresh)
         if path in self.PUBLIC_AUTH_ENDPOINTS:
             return False
@@ -134,9 +161,30 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         if not self.should_authenticate(request):
             return await call_next(request)
         
+        # Log request details for debugging
+        auth_header = request.headers.get("Authorization")
+        all_headers = dict(request.headers)
+        logger.info(
+            "🔍 Auth middleware processing request",
+            path=request.url.path,
+            method=request.method,
+            has_auth_header=bool(auth_header),
+            auth_header_preview=auth_header[:50] + "..." if auth_header else None,
+            content_type=request.headers.get("Content-Type"),
+            all_header_keys=list(all_headers.keys()),
+            authorization_header_full=auth_header if auth_header else "NOT FOUND"
+        )
+        
         # Extract and validate token
         token = self.extract_token(request)
         if not token:
+            logger.warning(
+                "❌ No token found in request after extraction",
+                path=request.url.path,
+                authorization_header=auth_header,
+                authorization_header_type=type(auth_header).__name__ if auth_header else None,
+                all_headers=list(all_headers.keys())
+            )
             response = JSONResponse(
                 status_code=401,
                 content={

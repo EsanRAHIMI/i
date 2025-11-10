@@ -1,3 +1,4 @@
+// i/app/frontend/hooks/useWebSocket.ts
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 
@@ -26,17 +27,12 @@ const MAX_RECONNECT_INTERVAL = 30000; // 30 seconds
 const CIRCUIT_BREAKER_THRESHOLD = 3; // After 3 failures, wait longer
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
+  // ✅ تنظیم URL پیش‌فرض
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
-  
-  // If WebSocket URL is not set, don't try to connect
-  if (!wsUrl && !options.url) {
-    if (process.env.NODE_ENV === 'development') {
-      console.info('[WebSocket] NEXT_PUBLIC_WS_URL not set - WebSocket features disabled');
-    }
-  }
+  const defaultWsUrl = wsUrl || `ws://localhost:8000/api/v1/voice/stream/session_${Date.now()}`;
   
   const {
-    url = wsUrl,
+    url = defaultWsUrl,
     protocols,
     onMessage,
     onError,
@@ -80,8 +76,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }, []);
 
   const connect = useCallback(() => {
-    // Don't connect if disabled or if already connected
-    if (!enabled || !url || wsRef.current?.readyState === WebSocket.OPEN) {
+    // ✅ بررسی URL قبل از اتصال
+    if (!enabled || !url) {
+      logError('WebSocket URL not configured or disabled');
+      return;
+    }
+
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
 
@@ -110,13 +111,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     try {
       setConnectionState('connecting');
       
-      // Add auth token to WebSocket URL if user is authenticated
-      const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-      const wsUrlWithAuth = token ? `${url}?token=${token}` : url;
-      
-      wsRef.current = new WebSocket(wsUrlWithAuth, protocols);
+      // ✅ حذف token از URL برای تست
+      // در production باید authentication را پیاده‌سازی کنید
+      wsRef.current = new WebSocket(url, protocols);
 
       wsRef.current.onopen = (event) => {
+        console.log('✅ WebSocket connected successfully!');
         setIsConnected(true);
         setConnectionState('connected');
         reconnectCountRef.current = 0;
@@ -129,6 +129,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       wsRef.current.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
+          console.log('📩 WebSocket message received:', message);
           setLastMessage(message);
           onMessage?.(message);
         } catch (error) {
@@ -137,6 +138,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       };
 
       wsRef.current.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
         setConnectionState('disconnected');
         onClose?.(event);
@@ -148,7 +150,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           lastErrorTimeRef.current = Date.now();
           
           const delay = getReconnectDelay(reconnectCountRef.current - 1);
-          logError(`Connection closed. Reconnecting in ${Math.ceil(delay / 1000)}s (attempt ${reconnectCountRef.current}/${reconnectAttempts})`);
+          console.log(`Reconnecting in ${Math.ceil(delay / 1000)}s...`);
           
           reconnectTimeoutRef.current = setTimeout(() => {
             if (shouldReconnectRef.current && enabled) {
@@ -162,14 +164,10 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       };
 
       wsRef.current.onerror = (event) => {
+        console.error('❌ WebSocket error:', event);
         setConnectionState('error');
         consecutiveFailuresRef.current++;
         lastErrorTimeRef.current = Date.now();
-        
-        // Only log error in development or if it's a new error
-        if (isDevelopment || consecutiveFailuresRef.current <= 1) {
-          logError('WebSocket error', event);
-        }
         
         onError?.(event);
       };
@@ -180,7 +178,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       consecutiveFailuresRef.current++;
       lastErrorTimeRef.current = Date.now();
     }
-  }, [url, protocols, user, onOpen, onMessage, onClose, onError, reconnectAttempts, enabled, getReconnectDelay, logError]);
+  }, [url, protocols, onOpen, onMessage, onClose, onError, reconnectAttempts, enabled, getReconnectDelay, logError]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {

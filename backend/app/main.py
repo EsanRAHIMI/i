@@ -1,8 +1,11 @@
+# i/app/backend/app/main.py
 """
 FastAPI main application with core middleware and configuration.
 """
 import uuid
 import time
+import asyncio
+
 from contextlib import asynccontextmanager
 from typing import Optional
 
@@ -62,16 +65,21 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
     # Startup
-    logger.info("Starting up FastAPI application")
+    logger.info("=" * 60)
+    logger.info("🚀 Starting FastAPI Application")
+    logger.info("=" * 60)
+    logger.info(f"📍 API URL: http://0.0.0.0:8000")
+    logger.info(f"🔌 WebSocket: ws://0.0.0.0:8000/api/v1/voice/stream/{{session_id}}")
+    logger.info("=" * 60)
     
     # Create database tables
     models.Base.metadata.create_all(bind=engine)
-    logger.info("Database tables created/verified")
+    logger.info("✅ Database tables created/verified")
     
     yield
     
     # Shutdown
-    logger.info("Shutting down FastAPI application")
+    logger.info("👋 Shutting down FastAPI application")
 
 
 # Create FastAPI application
@@ -88,13 +96,13 @@ app = FastAPI(
 # Security middleware - must be added first
 app.add_middleware(SecurityHeadersMiddleware)
 
-# CORS middleware
+# ✅ CORS Configuration for WebSocket and HTTP
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allow all methods including WebSocket upgrade
+    allow_headers=["*"],  # Allow all headers for WebSocket
 )
 
 # Trusted host middleware
