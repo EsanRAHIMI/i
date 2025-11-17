@@ -40,7 +40,7 @@ google-auth-httplib2==0.2.0
 google-api-python-client==2.110.0
 
 # WhatsApp Business API
-twilio==8.11.0
+twilio==9.8.5
 
 # Object Storage
 minio==7.2.0
