@@ -137,6 +137,9 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
     def should_authenticate(self, request: Request) -> bool:
         """Check if request path requires authentication."""
         path = request.url.path
+        # Normalize path to avoid auth issues with trailing slashes added by proxies
+        if path != "/":
+            path = path.rstrip("/")
         
         # Skip authentication for excluded paths
         if path in self.EXCLUDED_PATHS:
