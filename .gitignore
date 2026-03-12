@@ -136,10 +136,13 @@ temp/
 checkpoints/
 
 # SSL Certificates (except self-signed for dev)
-#*.pem
+*.pem
 *.key
 *.crt
 !infra/ssl/nginx-selfsigned.*
+
+# JWT keys (never commit)
+backend/keys/
 
 # Backup files
 *.bak

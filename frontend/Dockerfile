@@ -17,12 +17,9 @@
   
   # فقط فایل‌های نصب را کپی کن تا cache بهتر عمل کند
   COPY package.json ./
+  COPY package-lock.json ./
   
-  # چون package-lock.json ممکن است در ریپو نباشد، از npm install استفاده می‌کنیم
-  RUN npm install --no-audit --no-fund
-  
-  # اطمینان از نصب lucide-react (fallback در صورت نیاز)
-  RUN npm list lucide-react >/dev/null 2>&1 || npm install lucide-react@latest --no-audit --no-fund
+  RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
   
   # بقیه سورس
   COPY . .

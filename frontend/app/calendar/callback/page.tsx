@@ -15,9 +15,9 @@ function CalendarCallbackContent() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const code = searchParams.get('code');
-        const state = searchParams.get('state');
-        const error = searchParams.get('error');
+        const code = searchParams?.get('code') || null;
+        const state = searchParams?.get('state') || null;
+        const error = searchParams?.get('error') || null;
 
         if (error) {
           setStatus('error');
