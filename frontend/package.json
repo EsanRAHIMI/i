@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node check-env.js && next dev --webpack",
     "dev:skip-env-check": "next dev --webpack",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
