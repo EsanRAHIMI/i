@@ -38,7 +38,7 @@ WORKDIR /app
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN python -m pip install --upgrade "pip<26" "setuptools<81" wheel \
+RUN python -m pip install --upgrade "pip<26" "setuptools<81" "wheel==0.45.1" \
     && pip install --no-cache-dir --no-build-isolation -r requirements.txt
 
 # Copy application code
