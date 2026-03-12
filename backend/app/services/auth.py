@@ -11,6 +11,7 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 import structlog
 import os
+import base64
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
@@ -47,53 +48,105 @@ class AuthService:
         Returns:
             Tuple of (private_key, public_key) as PEM-formatted strings
         """
+        def _read_text_file(path: str) -> str:
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
+
+        def _normalize_pem_input(value: str) -> bytes:
+            raw = (value or "").strip()
+
+            if (raw.startswith("\"") and raw.endswith("\"")) or (raw.startswith("'") and raw.endswith("'")):
+                raw = raw[1:-1]
+
+            if "\\n" in raw and "BEGIN" in raw:
+                raw = raw.replace("\\n", "\n")
+
+            if "BEGIN" in raw:
+                return raw.encode("utf-8")
+
+            try:
+                decoded = base64.b64decode(raw, validate=True)
+                if b"BEGIN" in decoded:
+                    return decoded
+            except Exception:
+                pass
+
+            return raw.encode("utf-8")
+
+        def _validate_keys(private_pem: bytes, public_pem: bytes) -> None:
+            serialization.load_pem_private_key(
+                private_pem,
+                password=None,
+                backend=default_backend(),
+            )
+            serialization.load_pem_public_key(
+                public_pem,
+                backend=default_backend(),
+            )
+
+        def _resolve_keys_dir() -> str:
+            keys_dir = settings.JWT_KEYS_DIR or "keys"
+            if os.path.isabs(keys_dir):
+                return keys_dir
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+            return os.path.join(project_root, keys_dir)
+
+        # First, try to use keys from explicit file paths (recommended in production)
+        if settings.JWT_PRIVATE_KEY_FILE and settings.JWT_PUBLIC_KEY_FILE:
+            try:
+                private_key_pem_str = _read_text_file(settings.JWT_PRIVATE_KEY_FILE)
+                public_key_pem_str = _read_text_file(settings.JWT_PUBLIC_KEY_FILE)
+                _validate_keys(
+                    _normalize_pem_input(private_key_pem_str),
+                    _normalize_pem_input(public_key_pem_str),
+                )
+                logger.info("Loaded JWT keys from key files")
+                return private_key_pem_str, public_key_pem_str
+            except Exception as e:
+                if settings.JWT_KEYS_REQUIRED:
+                    raise
+                logger.warning(f"Failed to load JWT keys from key files: {e}, trying other sources")
+
         # First, try to use keys from settings/environment
         if settings.JWT_PRIVATE_KEY and settings.JWT_PUBLIC_KEY:
             try:
-                # Validate that keys are in PEM format
-                private_key_obj = serialization.load_pem_private_key(
-                    settings.JWT_PRIVATE_KEY.encode('utf-8'),
-                    password=None,
-                    backend=default_backend()
-                )
-                public_key_obj = serialization.load_pem_public_key(
-                    settings.JWT_PUBLIC_KEY.encode('utf-8'),
-                    backend=default_backend()
+                _validate_keys(
+                    _normalize_pem_input(settings.JWT_PRIVATE_KEY),
+                    _normalize_pem_input(settings.JWT_PUBLIC_KEY),
                 )
                 logger.info("Loaded JWT keys from settings/environment")
                 return settings.JWT_PRIVATE_KEY, settings.JWT_PUBLIC_KEY
             except Exception as e:
+                if settings.JWT_KEYS_REQUIRED:
+                    raise
                 logger.warning(f"Failed to load JWT keys from settings: {e}, trying file-based keys")
-        
+
         # Second, try to load from files
-        keys_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "keys")
+        keys_dir = _resolve_keys_dir()
         private_key_path = os.path.join(keys_dir, "jwt_private_key.pem")
         public_key_path = os.path.join(keys_dir, "jwt_public_key.pem")
         
         if os.path.exists(private_key_path) and os.path.exists(public_key_path):
             try:
-                with open(private_key_path, "r") as f:
-                    private_key_pem = f.read()
-                with open(public_key_path, "r") as f:
-                    public_key_pem = f.read()
-                
-                # Validate keys
-                serialization.load_pem_private_key(
-                    private_key_pem.encode('utf-8'),
-                    password=None,
-                    backend=default_backend()
-                )
-                serialization.load_pem_public_key(
-                    public_key_pem.encode('utf-8'),
-                    backend=default_backend()
+                private_key_pem = _read_text_file(private_key_path)
+                public_key_pem = _read_text_file(public_key_path)
+
+                _validate_keys(
+                    _normalize_pem_input(private_key_pem),
+                    _normalize_pem_input(public_key_pem),
                 )
                 
                 logger.info("Loaded JWT keys from files")
                 return private_key_pem, public_key_pem
             except Exception as e:
+                if settings.JWT_KEYS_REQUIRED:
+                    raise
                 logger.warning(f"Failed to load JWT keys from files: {e}, generating new keys")
         
         # Finally, generate new keys and save them
+        if settings.JWT_KEYS_REQUIRED:
+            raise RuntimeError("JWT keys are required but could not be loaded from settings or files")
+
         logger.info("Generating new JWT key pair")
         os.makedirs(keys_dir, exist_ok=True)
         

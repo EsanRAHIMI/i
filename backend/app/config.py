@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     JWT_PRIVATE_KEY: Optional[str] = None
     JWT_PUBLIC_KEY: Optional[str] = None
 
+    JWT_PRIVATE_KEY_FILE: Optional[str] = None
+    JWT_PUBLIC_KEY_FILE: Optional[str] = None
+    JWT_KEYS_DIR: str = "keys"
+    JWT_KEYS_REQUIRED: bool = False
+
     # Encryption
     ENCRYPTION_MASTER_KEY: Optional[str] = None
 
