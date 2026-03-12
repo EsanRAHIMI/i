@@ -16,11 +16,10 @@
   ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
   
   # فقط فایل‌های نصب را کپی کن تا cache بهتر عمل کند
-  COPY package.json package-lock.json ./
+  COPY package.json ./
   
-  # اگر lock وجود داشت از ci استفاده کن، وگرنه نصب معمولی
-  # (در Dokploy چون الان lock داخل frontend داری، ci اجرا می‌شود)
-  RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
+  # چون package-lock.json ممکن است در ریپو نباشد، از npm install استفاده می‌کنیم
+  RUN npm install --no-audit --no-fund
   
   # اطمینان از نصب lucide-react (fallback در صورت نیاز)
   RUN npm list lucide-react >/dev/null 2>&1 || npm install lucide-react@latest --no-audit --no-fund
