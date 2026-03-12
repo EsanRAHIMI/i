@@ -94,6 +94,16 @@ class Settings(BaseSettings):
     WHATSAPP_VERIFY_TOKEN: Optional[str] = None
     WHATSAPP_WEBHOOK_SECRET: Optional[str] = None
 
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_EMAIL: Optional[str] = None
+    SMTP_USE_TLS: bool = True
+    SMTP_USE_SSL: bool = False
+
+    PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
+
     # Voice Processing
     WHISPER_MODEL_SIZE: str = "base"  # tiny, base, small, medium, large
     ELEVENLABS_API_KEY: Optional[str] = None

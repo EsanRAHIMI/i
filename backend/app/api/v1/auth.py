@@ -8,17 +8,22 @@ from sqlalchemy.orm import Session
 import structlog
 import uuid
 import os
+import hashlib
+import secrets
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
 from ...database.base import get_db
 from ...services.auth import auth_service
+from ...services.email import email_service
 from ...schemas.auth import (
     UserCreate, UserLogin, TokenResponse, RefreshTokenRequest,
     UserResponse, PasswordChange, UserSettingsResponse, UserSettingsUpdate,
-    UserUpdate
+    UserUpdate, ForgotPasswordRequest, ResetPasswordRequest
 )
-from ...database.models import UserSettings
+from ...database.models import UserSettings, User, PasswordResetToken
+from ...config import settings
 
 logger = structlog.get_logger(__name__)
 security = HTTPBearer()
@@ -117,6 +122,107 @@ async def login_user(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed"
+        )
+
+
+@router.post("/forgot-password")
+async def forgot_password(
+    forgot_request: ForgotPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Request a password reset email.
+
+    Always returns success to avoid leaking whether the email exists.
+    """
+    try:
+        email = forgot_request.email
+        user = auth_service.get_user_by_email(db, email)
+
+        if user:
+            raw_token = secrets.token_urlsafe(48)
+            token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+            expires_at = datetime.utcnow() + timedelta(minutes=settings.PASSWORD_RESET_TOKEN_EXPIRE_MINUTES)
+
+            reset_token = PasswordResetToken(
+                user_id=user.id,
+                token_hash=token_hash,
+                expires_at=expires_at,
+            )
+            db.add(reset_token)
+            db.commit()
+
+            reset_url = f"{(settings.FRONTEND_URL or 'http://localhost:3000').rstrip('/')}/auth/reset-password?token={raw_token}"
+
+            try:
+                email_service.send_password_reset_email(to_email=user.email, reset_url=reset_url)
+                logger.info("Password reset email sent", user_id=str(user.id))
+            except Exception as email_error:
+                # Don't fail the endpoint (avoid leaking user existence and avoid blocking UX)
+                logger.error(
+                    "Failed to send password reset email",
+                    user_id=str(user.id),
+                    error=str(email_error),
+                    exc_info=True,
+                )
+
+        return {"message": "If the email exists, a reset link has been sent."}
+
+    except Exception as e:
+        logger.error("Forgot password error", error=str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to process password reset request",
+        )
+
+
+@router.post("/reset-password")
+async def reset_password(
+    reset_request: ResetPasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Reset password using a valid reset token."""
+    try:
+        token_hash = hashlib.sha256(reset_request.token.encode("utf-8")).hexdigest()
+        reset_token = (
+            db.query(PasswordResetToken)
+            .filter(PasswordResetToken.token_hash == token_hash)
+            .first()
+        )
+
+        if (
+            not reset_token
+            or reset_token.used_at is not None
+            or (reset_token.expires_at is not None and reset_token.expires_at < datetime.utcnow())
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired reset token",
+            )
+
+        user = db.query(User).filter(User.id == reset_token.user_id).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        user.password_hash = auth_service.hash_password(reset_request.new_password)
+        reset_token.used_at = datetime.utcnow()
+
+        db.commit()
+
+        logger.info("Password reset completed", user_id=str(user.id))
+        return {"message": "Password has been reset successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Reset password error", error=str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to reset password",
         )
 
 

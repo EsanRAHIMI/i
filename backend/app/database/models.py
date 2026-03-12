@@ -214,7 +214,7 @@ class ClientUpdate(Base):
 
 
 class Consent(Base):
-    """User consent records for privacy compliance."""
+    """User consent tracking for GDPR and privacy compliance."""
     __tablename__ = "consents"
 
     id = Column(UUIDType, primary_key=True, default=uuid_default)
@@ -230,6 +230,23 @@ class Consent(Base):
 
     def __repr__(self):
         return f"<Consent(id={self.id}, user_id={self.user_id}, consent_type={self.consent_type}, granted={self.granted})>"
+
+
+class PasswordResetToken(Base):
+    """Password reset tokens (hashed) for one-time password reset flow."""
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(UUIDType, primary_key=True, default=uuid_default)
+    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(TIMESTAMP, nullable=False, index=True)
+    used_at = Column(TIMESTAMP, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    user = relationship("User")
+
+    def __repr__(self):
+        return f"<PasswordResetToken(id={self.id}, user_id={self.user_id}, expires_at={self.expires_at}, used={self.used_at is not None})>"
 
 
 class AuditLog(Base):

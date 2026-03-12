@@ -76,6 +76,39 @@ class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    """Schema for requesting a password reset email."""
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    """Schema for resetting password using a reset token."""
+    token: str = Field(min_length=10)
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    def validate_new_password(cls, v):
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters long")
+
+        password_bytes = v.encode('utf-8')
+        if len(password_bytes) > 128:
+            raise ValueError("Password is too long (maximum 128 bytes)")
+
+        has_upper = any(c.isupper() for c in v)
+        has_lower = any(c.islower() for c in v)
+        has_digit = any(c.isdigit() for c in v)
+        has_special = any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in v)
+
+        if not all([has_upper, has_lower, has_digit, has_special]):
+            raise ValueError(
+                "Password must contain at least one uppercase letter, "
+                "one lowercase letter, one digit, and one special character"
+            )
+
+        return v
+
+
 class TokenPayload(BaseModel):
     """Schema for JWT token payload."""
     sub: str  # user ID

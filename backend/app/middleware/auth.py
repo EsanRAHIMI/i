@@ -42,7 +42,9 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         "/api/v1/openapi.json",
         "/api/v1/auth/register",
         "/api/v1/auth/login",
-        "/api/v1/auth/refresh"
+        "/api/v1/auth/refresh",
+        "/api/v1/auth/forgot-password",
+        "/api/v1/auth/reset-password",
     }
     
     # Path prefixes that don't require authentication
@@ -60,7 +62,9 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
     PUBLIC_AUTH_ENDPOINTS = [
         "/api/v1/auth/register",
         "/api/v1/auth/login",
-        "/api/v1/auth/refresh"
+        "/api/v1/auth/refresh",
+        "/api/v1/auth/forgot-password",
+        "/api/v1/auth/reset-password",
     ]
     
     # OAuth callback doesn't require token (both GET and POST)

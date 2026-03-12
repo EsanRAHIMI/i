@@ -213,6 +213,19 @@ class ApiClient {
     this.clearAuthToken();
   }
 
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const response = await this.client.post('/auth/forgot-password', { email });
+    return response.data;
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    const response = await this.client.post('/auth/reset-password', {
+      token,
+      new_password: newPassword,
+    });
+    return response.data;
+  }
+
   // User endpoints
   async getCurrentUser(): Promise<User> {
     const response = await this.client.get('/auth/me');
