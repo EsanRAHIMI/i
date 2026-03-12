@@ -26,10 +26,47 @@ const INITIAL_RECONNECT_INTERVAL = 1000; // 1 second
 const MAX_RECONNECT_INTERVAL = 30000; // 30 seconds
 const CIRCUIT_BREAKER_THRESHOLD = 3; // After 3 failures, wait longer
 
+function normalizeVoiceWsUrl(rawUrl: string | undefined): string | undefined {
+  if (!rawUrl) return undefined;
+
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return undefined;
+
+  const sessionId = `session_${Date.now()}`;
+
+  // If already points to the expected endpoint, just ensure session id exists.
+  if (trimmed.includes('/api/v1/voice/stream/')) {
+    if (trimmed.endsWith('/api/v1/voice/stream') || trimmed.endsWith('/api/v1/voice/stream/')) {
+      return `${trimmed.replace(/\/$/, '')}/${sessionId}`;
+    }
+    return trimmed;
+  }
+
+  // Common misconfiguration: setting it to /ws (HTTP or WS).
+  if (trimmed.endsWith('/ws')) {
+    return `${trimmed.replace(/\/ws$/, '')}/api/v1/voice/stream/${sessionId}`;
+  }
+
+  // If it's a base URL (host only or with a different path), append the expected endpoint.
+  if (trimmed.startsWith('ws://') || trimmed.startsWith('wss://')) {
+    return `${trimmed.replace(/\/$/, '')}/api/v1/voice/stream/${sessionId}`;
+  }
+
+  // Allow passing http(s) base and convert to ws(s)
+  if (trimmed.startsWith('https://')) {
+    return `wss://${trimmed.slice('https://'.length).replace(/\/$/, '')}/api/v1/voice/stream/${sessionId}`;
+  }
+  if (trimmed.startsWith('http://')) {
+    return `ws://${trimmed.slice('http://'.length).replace(/\/$/, '')}/api/v1/voice/stream/${sessionId}`;
+  }
+
+  return trimmed;
+}
+
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   // ✅ تنظیم URL پیش‌فرض
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
-  const defaultWsUrl = wsUrl || `ws://localhost:8000/api/v1/voice/stream/session_${Date.now()}`;
+  const defaultWsUrl = normalizeVoiceWsUrl(wsUrl) || `ws://localhost:8000/api/v1/voice/stream/session_${Date.now()}`;
   
   const {
     url = defaultWsUrl,

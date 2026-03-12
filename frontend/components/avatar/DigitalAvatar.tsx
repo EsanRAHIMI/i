@@ -115,8 +115,8 @@ function AvatarMesh({ isActive, isSpeaking, audioUrl, avatarUrl }: { isActive: b
       },
       (error) => {
         if (isCancelled) return;
-        console.error('Failed to load avatar texture:', error);
-        console.error('Texture URL was:', textureUrl);
+        // Avoid spamming the console in production when avatars are missing.
+        console.warn('Failed to load avatar texture. Falling back to default avatar.');
         setTextureError(true);
         setTexture((prevTexture) => {
           if (prevTexture) {
@@ -188,8 +188,34 @@ function AvatarMesh({ isActive, isSpeaking, audioUrl, avatarUrl }: { isActive: b
 
   return (
     <group>
+      {/* Default avatar placeholder (when URL exists but texture failed to load) */}
+      {textureError && !texture && (
+        <Billboard follow={true}>
+          <Html center>
+            <div
+              style={{
+                width: 120,
+                height: 120,
+                borderRadius: '9999px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'rgba(99, 102, 241, 0.25)',
+                border: '2px solid rgba(99, 102, 241, 0.8)',
+                color: 'white',
+                fontSize: 48,
+                userSelect: 'none',
+              }}
+              aria-label="default avatar"
+            >
+              👤
+            </div>
+          </Html>
+        </Billboard>
+      )}
+
       {/* Background Sphere - Only shown when no texture */}
-      {!texture && (
+      {!texture && !textureError && (
         <>
           <Sphere
             ref={meshRef}
