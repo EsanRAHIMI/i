@@ -50,11 +50,17 @@ configure_logging(
 )
 
 # Initialize distributed tracing
-enable_tracing = not os.getenv("TESTING")
+_enable_tracing_env = os.getenv("ENABLE_TRACING")
+enable_tracing = (
+    (not os.getenv("TESTING"))
+    and (_enable_tracing_env is not None)
+    and (_enable_tracing_env.strip().lower() in {"1", "true", "yes", "on"})
+)
+jaeger_endpoint = os.getenv("JAEGER_ENDPOINT") or "http://jaeger:14268/api/traces"
 init_tracing(TracingConfig(
     service_name="ai-assistant-backend",
     service_version="1.0.0",
-    jaeger_endpoint="http://jaeger:14268/api/traces",
+    jaeger_endpoint=jaeger_endpoint,
     enable_tracing=enable_tracing
 ))
 

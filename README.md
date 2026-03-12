@@ -26,11 +26,6 @@ i-assistant/
 ├── frontend/          # Next.js frontend application  
 ├── ai/               # AI services and models
 ├── auth/             # Authentication services
-├── infra/            # Infrastructure configuration
-├── scripts/          # Deployment and utility scripts
-├── docs/             # Documentation
-├── ops/              # Operations and monitoring
-├── docker-compose.yml # Multi-service orchestration
 └── .env.example      # Environment configuration template
 ```
 
@@ -150,3 +145,22 @@ Copy `.env.example` to `.env` and configure:
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+
+----------------------------------------
+Terminal 1: Backend (FastAPI)
+
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+export PYTHONPATH=$(pwd)
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+
+Terminal 2: Frontend (Next.js)
+
+cd frontend
+npm install
+npm run dev
+

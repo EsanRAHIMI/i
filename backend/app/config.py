@@ -5,6 +5,7 @@ from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import field_validator
 import os
+import json
 
 
 class Settings(BaseSettings):
@@ -48,6 +49,10 @@ class Settings(BaseSettings):
 
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_HOST: Optional[str] = None
+    REDIS_PORT: Optional[int] = None
+    REDIS_DB: Optional[int] = None
+    REDIS_PASSWORD: Optional[str] = None
 
     # CORS
     ALLOWED_ORIGINS: List[str] = [
@@ -105,11 +110,56 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    @field_validator("REDIS_URL", mode="before")
+    @classmethod
+    def normalize_redis_url(cls, v, info):
+        data = info.data or {}
+        redis_url = v
+
+        disable_auth = os.getenv("REDIS_DISABLE_AUTH")
+        disable_auth = bool(disable_auth and disable_auth.strip().lower() in {"1", "true", "yes", "on"})
+
+        # Prefer explicit REDIS_URL when provided
+        if isinstance(redis_url, str) and redis_url.strip():
+            redis_url = redis_url.strip()
+            if disable_auth:
+                from urllib.parse import urlsplit, urlunsplit
+
+                parts = urlsplit(redis_url)
+                host = parts.hostname or "localhost"
+                port = parts.port or 6379
+                netloc = f"{host}:{port}"
+                return urlunsplit((parts.scheme or "redis", netloc, parts.path or "/0", parts.query, parts.fragment))
+            return redis_url
+
+        host = data.get("REDIS_HOST") or os.getenv("REDIS_HOST")
+        port = data.get("REDIS_PORT") or os.getenv("REDIS_PORT")
+        db = data.get("REDIS_DB") or os.getenv("REDIS_DB")
+        password = data.get("REDIS_PASSWORD") or os.getenv("REDIS_PASSWORD")
+
+        host = host or "localhost"
+        port = int(port) if port is not None and str(port).strip() else 6379
+        db = int(db) if db is not None and str(db).strip() else 0
+
+        if password is not None:
+            password = str(password).strip()
+        if password:
+            return f"redis://:{password}@{host}:{port}/{db}"
+        return f"redis://{host}:{port}/{db}"
+
     @field_validator("ALLOWED_ORIGINS", mode="before")
     @classmethod
     def parse_cors_origins(cls, v):
         if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",")]
+            s = v.strip()
+            if s.startswith("[") and s.endswith("]"):
+                try:
+                    parsed = json.loads(s)
+                    if isinstance(parsed, list):
+                        return [str(origin).strip() for origin in parsed if str(origin).strip()]
+                except Exception:
+                    pass
+            return [origin.strip() for origin in s.split(",") if origin.strip()]
         return v
 
     @field_validator("ALLOWED_HOSTS", mode="before")
