@@ -208,7 +208,8 @@ env/
 */.venv/
 */venv/
 __pypackages__/
-
+auth/.venv-auth
+auth/keys
 # ----- Frontend/Monorepo caches -----
 .pnpm-store/
 .pnp.*

@@ -44,18 +44,29 @@ function AvatarMesh({ isActive, isSpeaking, audioUrl, avatarUrl }: { isActive: b
     if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
       textureUrl = avatarUrl;
     } else {
-      // Handle relative URLs from backend
-      let apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      
-      // Remove trailing /api/v1 from apiUrl if present (to avoid duplication)
-      // since avatar_url from backend already includes /api/v1
-      if (apiUrl.endsWith('/api/v1')) {
-        apiUrl = apiUrl.replace(/\/api\/v1$/, '');
+      // Avatar files are served by the auth service, not the backend
+      let authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8001';
+
+      // Remove trailing /v1 if present (we expect avatarUrl to contain /v1/... already)
+      if (authApiUrl.endsWith('/v1')) {
+        authApiUrl = authApiUrl.replace(/\/v1$/, '');
       }
-      
-      // Remove leading slash if present to avoid double slashes
-      const cleanUrl = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
-      textureUrl = `${apiUrl}${cleanUrl}`;
+
+      // Rewrite legacy backend avatar path to auth-service path
+      // backend legacy: /api/v1/auth/avatar/{filename}
+      // auth-service:  /v1/auth/avatar/{filename}
+      let normalizedPath = avatarUrl;
+      if (normalizedPath.startsWith('/api/v1/auth/avatar/')) {
+        normalizedPath = normalizedPath.replace('/api/v1/auth/avatar/', '/v1/auth/avatar/');
+      }
+
+      // If older rows were saved as /v1/avatar/{filename}, normalize too
+      if (normalizedPath.startsWith('/v1/avatar/')) {
+        normalizedPath = normalizedPath.replace('/v1/avatar/', '/v1/auth/avatar/');
+      }
+
+      const cleanUrl = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
+      textureUrl = `${authApiUrl}${cleanUrl}`;
     }
 
     console.log('Loading avatar texture from:', textureUrl);

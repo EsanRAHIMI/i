@@ -69,48 +69,7 @@ docker-compose build --no-cache
 
 ### Running Backend Locally (Recommended for Development)
 
-برای سرعت بیشتر در توسعه، بک‌اند در لوکال اجرا می‌شود و نیازی به بیلد داکر ندارد:
-
-```bash
-# راه‌اندازی بک‌اند در لوکال
-./scripts/run-backend-local.sh
-```
-
-یا به صورت دستی:
-
-```bash
-cd backend
-
-# ایجاد محیط مجازی (فقط بار اول)
-python3 -m venv venv
-source venv/bin/activate
-
-# نصب وابستگی‌ها
-pip install -r requirements.txt
-
-# تنظیم متغیرهای محیطی
-export POSTGRES_HOST=localhost
-export POSTGRES_PORT=5432
-export POSTGRES_DB=i***
-export POSTGRES_USER=es****
-export POSTGRES_PASSWORD=A*****
-export REDIS_URL=redis://localhost:6379/0
-export MINIO_ENDPOINT=localhost:9000
-export MINIO_ACCESS_KEY=es****
-export MINIO_SECRET_KEY=A*****
-export PYTHONPATH=$(pwd)
-
-# اجرای migrations
-alembic upgrade head
-
-# راه‌اندازی سرور
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-**نکات مهم:**
-- سرویس‌های Docker (PostgreSQL, Redis, MinIO) باید قبل از اجرای بک‌اند در حال اجرا باشند
-- بک‌اند در لوکال به پورت‌های localhost متصل می‌شود که توسط Docker در دسترس هستند
-- Nginx در کانتینر به `host.docker.internal:8000` متصل می‌شود تا به بک‌اند لوکال دسترسی داشته باشد
+See the “Run locally (3 terminals)” section at the end of this README.
 
 ## 📋 Requirements
 
@@ -146,21 +105,25 @@ Copy `.env.example` to `.env` and configure:
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
+## Run locally (3 terminals)
 
-----------------------------------------
-Terminal 1: Backend (FastAPI)
+Terminal 1: Auth service
 
+```bash
+cd auth
+./.venv-auth/bin/python -m uvicorn auth_service.main:app --host 0.0.0.0 --port 8001
+```
+
+Terminal 2: Backend
+
+```bash
 cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-export PYTHONPATH=$(pwd)
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+./.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
 
+Terminal 3: Frontend
 
-Terminal 2: Frontend (Next.js)
-
+```bash
 cd frontend
-npm install
 npm run dev
-
+```

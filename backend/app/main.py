@@ -106,6 +106,7 @@ app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origin_regex=r"^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods including WebSocket upgrade
     allow_headers=["*"],  # Allow all headers for WebSocket

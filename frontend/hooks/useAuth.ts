@@ -3,6 +3,21 @@ import { useAppStore } from '@/store/useAppStore';
 import { apiClient } from '@/lib/api';
 import { User } from '@/types';
 
+function normalizeAvatarUrl(user: User): User {
+  if (!user?.avatar_url) return user;
+
+  let avatarUrl = user.avatar_url;
+  if (avatarUrl.startsWith('/api/v1/auth/avatar/')) {
+    avatarUrl = avatarUrl.replace('/api/v1/auth/avatar/', '/v1/auth/avatar/');
+  }
+  if (avatarUrl.startsWith('/v1/avatar/')) {
+    avatarUrl = avatarUrl.replace('/v1/avatar/', '/v1/auth/avatar/');
+  }
+
+  if (avatarUrl === user.avatar_url) return user;
+  return { ...user, avatar_url: avatarUrl };
+}
+
 export function useAuth() {
   const { user, setUser, setSettings, setLoading, setError, isLoading } = useAppStore();
   const [isInitialized, setIsInitialized] = useState(false);
@@ -29,7 +44,7 @@ export function useAuth() {
             
             // Only set user if component is still mounted and we got a valid user
             if (isMounted && currentUser) {
-              setUser(currentUser);
+              setUser(normalizeAvatarUrl(currentUser));
               
               // Try to get settings in background - don't wait for it or fail on error
               // This is non-critical and should not block initialization
@@ -110,7 +125,7 @@ export function useAuth() {
       }
       
       // Set user immediately - this triggers isAuthenticated to become true
-      setUser(loggedInUser);
+      setUser(normalizeAvatarUrl(loggedInUser));
       
       // Don't fetch settings immediately - let the dashboard page handle it after redirect
       // This prevents race conditions and 401 errors
@@ -242,6 +257,7 @@ export function useAuth() {
       setUser(null);
       setSettings(null);
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_refresh_token');
     }
   };
 

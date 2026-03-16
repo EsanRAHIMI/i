@@ -1,5 +1,5 @@
 """
-Authentication Pydantic schemas.
+Authentication schemas.
 """
 from datetime import datetime
 from typing import Optional
@@ -19,12 +19,10 @@ class UserCreate(BaseModel):
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long")
         
-        # Check byte length (bcrypt has 72-byte limit, but we handle longer passwords with pre-hashing)
         password_bytes = v.encode('utf-8')
-        if len(password_bytes) > 128:  # Reasonable limit to prevent abuse
+        if len(password_bytes) > 128:
             raise ValueError("Password is too long (maximum 128 bytes)")
         
-        # Check for at least one uppercase, lowercase, digit, and special character
         has_upper = any(c.isupper() for c in v)
         has_lower = any(c.islower() for c in v)
         has_digit = any(c.isdigit() for c in v)
@@ -105,41 +103,29 @@ class ResetPasswordRequest(BaseModel):
                 "Password must contain at least one uppercase letter, "
                 "one lowercase letter, one digit, and one special character"
             )
-
+        
         return v
 
 
-class TokenPayload(BaseModel):
-    """Schema for JWT token payload."""
-    sub: str  # user ID
-    email: str
-    type: str  # "access" or "refresh"
-    exp: int
-    iat: int
-    jti: str
-
-
 class PasswordChange(BaseModel):
-    """Schema for password change."""
+    """Schema for password change (authenticated user)."""
     current_password: str
     new_password: str = Field(min_length=8, max_length=128)
 
-    @field_validator("new_password")    
+    @field_validator("new_password")
     def validate_new_password(cls, v):
-        """Validate new password strength."""
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long")
-        
-        # Check byte length (bcrypt has 72-byte limit, but we handle longer passwords with pre-hashing)
+
         password_bytes = v.encode('utf-8')
-        if len(password_bytes) > 128:  # Reasonable limit to prevent abuse
+        if len(password_bytes) > 128:
             raise ValueError("Password is too long (maximum 128 bytes)")
-        
+
         has_upper = any(c.isupper() for c in v)
         has_lower = any(c.islower() for c in v)
         has_digit = any(c.isdigit() for c in v)
         has_special = any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in v)
-        
+
         if not all([has_upper, has_lower, has_digit, has_special]):
             raise ValueError(
                 "Password must contain at least one uppercase letter, "
@@ -151,7 +137,6 @@ class PasswordChange(BaseModel):
 
 class UserSettingsResponse(BaseModel):
     """Schema for user settings response."""
-    user_id: str
     whatsapp_opt_in: bool
     voice_training_consent: bool
     calendar_sync_enabled: bool
@@ -163,8 +148,6 @@ class UserSettingsResponse(BaseModel):
 
 class UserUpdate(BaseModel):
     """Schema for updating user profile."""
-    email: Optional[EmailStr] = None
-    avatar_url: Optional[str] = None
     timezone: Optional[str] = None
     language_preference: Optional[str] = None
 

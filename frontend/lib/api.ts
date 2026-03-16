@@ -3,11 +3,19 @@ import { User, UserSettings, Task, CalendarEvent, CalendarConnection, AgentRespo
 
 class ApiClient {
   private client: AxiosInstance;
+  private authClient: AxiosInstance;
 
   constructor() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl) {
       const errorMsg = 'NEXT_PUBLIC_API_URL environment variable is not set. Please create a .env.local file in the frontend directory with NEXT_PUBLIC_API_URL=http://localhost:8000';
+      console.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL;
+    if (!authApiUrl) {
+      const errorMsg = 'NEXT_PUBLIC_AUTH_API_URL environment variable is not set. Please create a .env.local file in the frontend directory with NEXT_PUBLIC_AUTH_API_URL=http://localhost:8001';
       console.error(errorMsg);
       throw new Error(errorMsg);
     }
@@ -20,59 +28,78 @@ class ApiClient {
       },
     });
 
+    this.authClient = axios.create({
+      baseURL: authApiUrl,
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
     // Request interceptor for auth token
-    this.client.interceptors.request.use(
-      (config) => {
-        const token = this.getAuthToken();
+    const requestInterceptor = (config: any) => {
+      const token = this.getAuthToken();
+      
+      // ALWAYS set Authorization header first, before any other modifications
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      
+      // For multipart/form-data requests, don't override Content-Type
+      // Let axios/browser set it automatically with boundary
+      if (config.data instanceof FormData) {
+        console.log('=== REQUEST INTERCEPTOR - FormData detected ===');
+        console.log('Token available:', !!token);
+        console.log('Initial headers:', Object.keys(config.headers || {}));
+        console.log('Initial Authorization:', config.headers?.Authorization ? 'Present' : 'Missing');
         
-        // ALWAYS set Authorization header first, before any other modifications
+        // CRITICAL: Set Authorization BEFORE deleting Content-Type
+        // This ensures it's not lost during header manipulation
         if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+          console.log('Authorization set to:', config.headers.Authorization.substring(0, 30) + '...');
+        }
+        
+        // Delete Content-Type header to let browser set it with boundary
+        // This is important for multipart/form-data requests
+        delete config.headers['Content-Type'];
+        delete config.headers.common?.['Content-Type'];
+        
+        // Ensure axios doesn't add it back
+        if (config.headers && config.headers['Content-Type'] === 'application/json') {
+          delete config.headers['Content-Type'];
+        }
+        
+        // FINAL CHECK: Ensure Authorization is still there after all deletions
+        if (token && !config.headers.Authorization) {
+          console.error('⚠️ Authorization header was lost! Restoring...');
           config.headers.Authorization = `Bearer ${token}`;
         }
         
-        // For multipart/form-data requests, don't override Content-Type
-        // Let axios/browser set it automatically with boundary
-        if (config.data instanceof FormData) {
-          console.log('=== REQUEST INTERCEPTOR - FormData detected ===');
-          console.log('Token available:', !!token);
-          console.log('Initial headers:', Object.keys(config.headers || {}));
-          console.log('Initial Authorization:', config.headers?.Authorization ? 'Present' : 'Missing');
-          
-          // CRITICAL: Set Authorization BEFORE deleting Content-Type
-          // This ensures it's not lost during header manipulation
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-            console.log('Authorization set to:', config.headers.Authorization.substring(0, 30) + '...');
-          }
-          
-          // Delete Content-Type header to let browser set it with boundary
-          // This is important for multipart/form-data requests
-          delete config.headers['Content-Type'];
-          delete config.headers.common?.['Content-Type'];
-          
-          // Ensure axios doesn't add it back
-          if (config.headers && config.headers['Content-Type'] === 'application/json') {
-            delete config.headers['Content-Type'];
-          }
-          
-          // FINAL CHECK: Ensure Authorization is still there after all deletions
-          if (token && !config.headers.Authorization) {
-            console.error('⚠️ Authorization header was lost! Restoring...');
-            config.headers.Authorization = `Bearer ${token}`;
-          }
-          
-          // Log all headers for debugging
-          console.log('=== AFTER HEADER MANIPULATION ===');
-          console.log('Authorization header:', config.headers.Authorization ? '✅ Present' : '❌ Missing');
-          if (config.headers.Authorization && typeof config.headers.Authorization === 'string') {
-            console.log('Authorization value:', config.headers.Authorization.substring(0, 50) + '...');
-          }
-          console.log('All headers keys:', Object.keys(config.headers));
-          console.log('URL:', config.url);
-          console.log('Method:', config.method);
-          console.log('Full URL:', (config.baseURL || '') + (config.url || ''));
+        // Log all headers for debugging
+        console.log('=== AFTER HEADER MANIPULATION ===');
+        console.log('Authorization header:', config.headers.Authorization ? '✅ Present' : '❌ Missing');
+        if (config.headers.Authorization && typeof config.headers.Authorization === 'string') {
+          console.log('Authorization value:', config.headers.Authorization.substring(0, 50) + '...');
         }
-        return config;
+        console.log('All headers keys:', Object.keys(config.headers));
+        console.log('URL:', config.url);
+        console.log('Method:', config.method);
+        console.log('Full URL:', (config.baseURL || '') + (config.url || ''));
+      }
+      return config;
+    };
+
+    this.client.interceptors.request.use(
+      (config) => {
+        return requestInterceptor(config);
+      },
+      (error) => Promise.reject(error)
+    );
+
+    this.authClient.interceptors.request.use(
+      (config) => {
+        return requestInterceptor(config);
       },
       (error) => Promise.reject(error)
     );
@@ -148,13 +175,23 @@ class ApiClient {
     return null;
   }
 
-  private setAuthToken(token: string): void {
+  private getRefreshToken(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('auth_refresh_token');
+    }
+    return null;
+  }
+
+  private setAuthTokens(accessToken: string, refreshToken?: string): void {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem('auth_token', token);
+        localStorage.setItem('auth_token', accessToken);
+        if (refreshToken) {
+          localStorage.setItem('auth_refresh_token', refreshToken);
+        }
         // Verify it was saved
         const saved = localStorage.getItem('auth_token');
-        if (saved !== token) {
+        if (saved !== accessToken) {
           console.error('Failed to save token to localStorage. Token mismatch.');
         }
       } catch (error) {
@@ -167,13 +204,14 @@ class ApiClient {
   private clearAuthToken(): void {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_refresh_token');
     }
   }
 
   // Auth endpoints
   async login(email: string, password: string): Promise<{ user: User; token: string }> {
-    const response = await this.client.post('/auth/login', { email, password });
-    const { user, access_token } = response.data;
+    const response = await this.authClient.post('/v1/auth/login', { email, password });
+    const { user, access_token, refresh_token } = response.data;
     
     // Ensure we have a token
     if (!access_token) {
@@ -181,7 +219,7 @@ class ApiClient {
     }
     
     // Save token to localStorage
-    this.setAuthToken(access_token);
+    this.setAuthTokens(access_token, refresh_token);
     
     // Verify token was saved
     const savedToken = this.getAuthToken();
@@ -195,9 +233,9 @@ class ApiClient {
 
   async register(email: string, password: string): Promise<{ user: User; token: string }> {
     try {
-      const response = await this.client.post('/auth/register', { email, password });
-      const { user, access_token } = response.data;
-      this.setAuthToken(access_token);
+      const response = await this.authClient.post('/v1/auth/register', { email, password });
+      const { user, access_token, refresh_token } = response.data;
+      this.setAuthTokens(access_token, refresh_token);
       return { user, token: access_token };
     } catch (error: any) {
       // Log error for debugging
@@ -209,17 +247,18 @@ class ApiClient {
   }
 
   async logout(): Promise<void> {
-    await this.client.post('/auth/logout');
+    const refreshToken = this.getRefreshToken();
+    await this.authClient.post('/v1/auth/logout', { refresh_token: refreshToken });
     this.clearAuthToken();
   }
 
   async forgotPassword(email: string): Promise<{ message: string }> {
-    const response = await this.client.post('/auth/forgot-password', { email });
+    const response = await this.authClient.post('/v1/auth/forgot-password', { email });
     return response.data;
   }
 
   async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
-    const response = await this.client.post('/auth/reset-password', {
+    const response = await this.authClient.post('/v1/auth/reset-password', {
       token,
       new_password: newPassword,
     });
@@ -228,12 +267,12 @@ class ApiClient {
 
   // User endpoints
   async getCurrentUser(): Promise<User> {
-    const response = await this.client.get('/auth/me');
+    const response = await this.authClient.get('/v1/auth/me');
     return response.data;
   }
 
   async updateUser(updates: Partial<User>): Promise<User> {
-    const response = await this.client.patch('/auth/me', updates);
+    const response = await this.authClient.patch('/v1/auth/me', updates);
     return response.data;
   }
 
@@ -263,16 +302,16 @@ class ApiClient {
       maxBodyLength: Infinity,
     };
     
-    console.log('Uploading with axios, URL will be: /auth/avatar/upload');
+    console.log('Uploading with axios, URL will be: /v1/auth/avatar/upload');
     console.log('Config headers keys:', Object.keys(config.headers));
     console.log('Token in config:', !!config.headers.Authorization);
     console.log('Config headers object:', JSON.stringify(config.headers, null, 2));
     console.log('Axios baseURL:', this.client.defaults.baseURL);
-    console.log('Full URL will be:', `${this.client.defaults.baseURL}/auth/avatar/upload`);
+    console.log('Full URL will be:', `${this.authClient.defaults.baseURL}/v1/auth/avatar/upload`);
     
     try {
       console.log('=== SENDING REQUEST ===');
-      const response = await this.client.post('/auth/avatar/upload', formData, config);
+      const response = await this.authClient.post('/v1/auth/avatar/upload', formData, config);
       console.log('=== UPLOAD SUCCESS ===');
       console.log('Upload successful, response:', response.data);
       return response.data;
@@ -295,12 +334,12 @@ class ApiClient {
 
   // Settings endpoints
   async getUserSettings(): Promise<UserSettings> {
-    const response = await this.client.get('/auth/settings');
+    const response = await this.authClient.get('/v1/auth/settings');
     return response.data;
   }
 
   async updateUserSettings(updates: Partial<UserSettings>): Promise<UserSettings> {
-    const response = await this.client.patch('/auth/settings', updates);
+    const response = await this.authClient.patch('/v1/auth/settings', updates);
     return response.data;
   }
 

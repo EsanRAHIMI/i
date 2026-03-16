@@ -18,7 +18,8 @@ celery_app = Celery(
         "app.tasks.ai_processing",
         "app.tasks.calendar_sync", 
         "app.tasks.messaging",
-        "app.tasks.federated_learning"
+        "app.tasks.federated_learning",
+        "app.tasks.maintenance"
     ]
 )
 
@@ -37,6 +38,7 @@ celery_app.conf.update(
         "app.tasks.calendar_sync.*": {"queue": "calendar_sync"},
         "app.tasks.messaging.*": {"queue": "messaging"},
         "app.tasks.federated_learning.*": {"queue": "federated_learning"},
+        "app.tasks.maintenance.*": {"queue": "maintenance"},
     },
     
     # Task execution settings
@@ -80,7 +82,7 @@ celery_app.conf.beat_schedule = {
         "schedule": 3600.0,  # Every hour
     },
     "cleanup_expired_tokens": {
-        "task": "app.tasks.auth.cleanup_expired_tokens",
+        "task": "app.tasks.maintenance.cleanup_expired_tokens",
         "schedule": 86400.0,  # Daily
     },
 }

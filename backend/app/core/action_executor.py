@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 import asyncio
 import logging
 
-from ..services.auth import AuthService
 from ..database.models import User, Event, Task, WhatsAppMessage
 
 logger = logging.getLogger(__name__)
@@ -32,7 +31,7 @@ class ActionExecutor:
         whatsapp_service=None,
         email_service=None,
         task_service=None,
-        auth_service: AuthService = None
+        auth_service=None
     ):
         self.calendar_service = calendar_service
         self.whatsapp_service = whatsapp_service

@@ -73,6 +73,7 @@ export default function FloatingGlassDock({
     sendVoiceStart,
     sendVoiceEnd,
   } = useWebSocket({
+    enabled: open || isStreaming,
     onMessage: (message) => {
       switch (message.type) {
         case 'transcript_partial':

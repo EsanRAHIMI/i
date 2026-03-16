@@ -34,33 +34,38 @@ function normalizeVoiceWsUrl(rawUrl: string | undefined): string | undefined {
 
   const sessionId = `session_${Date.now()}`;
 
+  // Replace common placeholders
+  const placeholderNormalized = trimmed
+    .replace(/\{session_id\}/g, sessionId)
+    .replace(/%7Bsession_id%7D/gi, sessionId);
+
   // If already points to the expected endpoint, just ensure session id exists.
-  if (trimmed.includes('/api/v1/voice/stream/')) {
-    if (trimmed.endsWith('/api/v1/voice/stream') || trimmed.endsWith('/api/v1/voice/stream/')) {
-      return `${trimmed.replace(/\/$/, '')}/${sessionId}`;
+  if (placeholderNormalized.includes('/api/v1/voice/stream/')) {
+    if (placeholderNormalized.endsWith('/api/v1/voice/stream') || placeholderNormalized.endsWith('/api/v1/voice/stream/')) {
+      return `${placeholderNormalized.replace(/\/$/, '')}/${sessionId}`;
     }
-    return trimmed;
+    return placeholderNormalized;
   }
 
   // Common misconfiguration: setting it to /ws (HTTP or WS).
-  if (trimmed.endsWith('/ws')) {
-    return `${trimmed.replace(/\/ws$/, '')}/api/v1/voice/stream/${sessionId}`;
+  if (placeholderNormalized.endsWith('/ws')) {
+    return `${placeholderNormalized.replace(/\/ws$/, '')}/api/v1/voice/stream/${sessionId}`;
   }
 
   // If it's a base URL (host only or with a different path), append the expected endpoint.
-  if (trimmed.startsWith('ws://') || trimmed.startsWith('wss://')) {
-    return `${trimmed.replace(/\/$/, '')}/api/v1/voice/stream/${sessionId}`;
+  if (placeholderNormalized.startsWith('ws://') || placeholderNormalized.startsWith('wss://')) {
+    return `${placeholderNormalized.replace(/\/$/, '')}/api/v1/voice/stream/${sessionId}`;
   }
 
   // Allow passing http(s) base and convert to ws(s)
-  if (trimmed.startsWith('https://')) {
-    return `wss://${trimmed.slice('https://'.length).replace(/\/$/, '')}/api/v1/voice/stream/${sessionId}`;
+  if (placeholderNormalized.startsWith('https://')) {
+    return `wss://${placeholderNormalized.slice('https://'.length).replace(/\/$/, '')}/api/v1/voice/stream/${sessionId}`;
   }
-  if (trimmed.startsWith('http://')) {
-    return `ws://${trimmed.slice('http://'.length).replace(/\/$/, '')}/api/v1/voice/stream/${sessionId}`;
+  if (placeholderNormalized.startsWith('http://')) {
+    return `ws://${placeholderNormalized.slice('http://'.length).replace(/\/$/, '')}/api/v1/voice/stream/${sessionId}`;
   }
 
-  return trimmed;
+  return placeholderNormalized;
 }
 
 export function useWebSocket(options: UseWebSocketOptions = {}) {
@@ -113,6 +118,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   }, []);
 
   const connect = useCallback(() => {
+    const isAuthRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/auth');
+    if (isAuthRoute) {
+      return;
+    }
+
     // ✅ بررسی URL قبل از اتصال
     if (!enabled || !url) {
       logError('WebSocket URL not configured or disabled');
@@ -148,8 +158,6 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     try {
       setConnectionState('connecting');
       
-      // ✅ حذف token از URL برای تست
-      // در production باید authentication را پیاده‌سازی کنید
       wsRef.current = new WebSocket(url, protocols);
 
       wsRef.current.onopen = (event) => {
@@ -283,6 +291,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   useEffect(() => {
     // Don't try to connect if URL is not configured
     if (!url && !wsUrl) {
+      return;
+    }
+
+    const isAuthRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/auth');
+    if (isAuthRoute) {
+      disconnect();
       return;
     }
     

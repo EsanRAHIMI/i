@@ -34,6 +34,7 @@ export function VoiceStreaming({ className, onTranscript, onResponse }: VoiceStr
     sendVoiceEnd,
     lastMessage
   } = useWebSocket({
+    enabled: isStreaming,
     onMessage: (message) => {
       switch (message.type) {
         case 'transcript_partial':

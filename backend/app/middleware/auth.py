@@ -2,6 +2,8 @@
 JWT Authentication middleware with RS256 token validation.
 """
 import jwt
+import os
+import base64
 from typing import Optional, Dict, Any
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -12,11 +14,66 @@ from sqlalchemy.orm import Session
 import structlog
 
 from ..config import settings
-from ..services.auth import auth_service
 from ..database.base import get_db
 from ..database.models import User
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
+
 logger = structlog.get_logger(__name__)
+
+
+def _normalize_pem_input(value: str) -> bytes:
+    raw = (value or "").strip()
+    if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
+        raw = raw[1:-1]
+    if "\\n" in raw and "BEGIN" in raw:
+        raw = raw.replace("\\n", "\n")
+    if "BEGIN" in raw:
+        return raw.encode("utf-8")
+    try:
+        decoded = base64.b64decode(raw, validate=True)
+        if b"BEGIN" in decoded:
+            return decoded
+    except Exception:
+        pass
+    return raw.encode("utf-8")
+
+
+def _load_public_key() -> Optional[str]:
+    """Load JWT public key from settings/env or files (compatible with auth-service)."""
+    if settings.JWT_PUBLIC_KEY:
+        try:
+            serialization.load_pem_public_key(_normalize_pem_input(settings.JWT_PUBLIC_KEY), backend=default_backend())
+            return settings.JWT_PUBLIC_KEY
+        except Exception:
+            if settings.JWT_KEYS_REQUIRED:
+                raise
+
+    if settings.JWT_PUBLIC_KEY_FILE and os.path.exists(settings.JWT_PUBLIC_KEY_FILE):
+        try:
+            key_text = open(settings.JWT_PUBLIC_KEY_FILE, "r", encoding="utf-8").read()
+            serialization.load_pem_public_key(_normalize_pem_input(key_text), backend=default_backend())
+            return key_text
+        except Exception:
+            if settings.JWT_KEYS_REQUIRED:
+                raise
+
+    keys_dir = settings.JWT_KEYS_DIR or "keys"
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    keys_dir_path = keys_dir if os.path.isabs(keys_dir) else os.path.join(project_root, keys_dir)
+    for filename in ("jwt_public_key.pem", "public.pem"):
+        candidate = os.path.join(keys_dir_path, filename)
+        if os.path.exists(candidate):
+            try:
+                key_text = open(candidate, "r", encoding="utf-8").read()
+                serialization.load_pem_public_key(_normalize_pem_input(key_text), backend=default_backend())
+                return key_text
+            except Exception:
+                if settings.JWT_KEYS_REQUIRED:
+                    raise
+
+    return None
 
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):
@@ -40,11 +97,6 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         "/api/v1/docs",
         "/api/v1/redoc",
         "/api/v1/openapi.json",
-        "/api/v1/auth/register",
-        "/api/v1/auth/login",
-        "/api/v1/auth/refresh",
-        "/api/v1/auth/forgot-password",
-        "/api/v1/auth/reset-password",
     }
     
     # Path prefixes that don't require authentication
@@ -54,18 +106,10 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
     ]
     
     # Paths that should be public (GET requests only, not POST/PUT/DELETE)
-    PUBLIC_GET_PATHS = [
-        "/api/v1/auth/avatar/"  # Avatar images should be publicly accessible (GET only)
-    ]
+    PUBLIC_GET_PATHS = []
     
-    # Auth endpoints that don't require authentication (public endpoints)
-    PUBLIC_AUTH_ENDPOINTS = [
-        "/api/v1/auth/register",
-        "/api/v1/auth/login",
-        "/api/v1/auth/refresh",
-        "/api/v1/auth/forgot-password",
-        "/api/v1/auth/reset-password",
-    ]
+    # Auth endpoints are handled by the dedicated auth service, not the backend
+    PUBLIC_AUTH_ENDPOINTS = []
     
     # OAuth callback doesn't require token (both GET and POST)
     OAUTH_CALLBACK_PATHS = [
@@ -74,8 +118,7 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
     
     def __init__(self, app):
         super().__init__(app)
-        # Use public key from auth_service which loads keys from files if needed
-        self.public_key = auth_service.public_key
+        self.public_key = _load_public_key()
         self.algorithm = settings.JWT_ALGORITHM
         
         if not self.public_key:
@@ -285,8 +328,9 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)) -> U
                 detail="Invalid authorization header format"
             )
         
-        # Validate token using auth_service public key
-        if not auth_service.public_key:
+        # Validate token using configured public key
+        public_key = _load_public_key()
+        if not public_key:
             logger.error("JWT public key is not available")
             raise HTTPException(
                 status_code=500,
@@ -296,7 +340,7 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)) -> U
         try:
             payload = jwt.decode(
                 token,
-                auth_service.public_key,
+                public_key,
                 algorithms=[settings.JWT_ALGORITHM],
                 options={"verify_exp": True}
             )
@@ -327,7 +371,7 @@ async def get_current_user(request: Request, db: Session = Depends(get_db)) -> U
             detail="Authentication required"
         )
     
-    user = auth_service.get_user_by_id(db, user_id)
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(
             status_code=401,

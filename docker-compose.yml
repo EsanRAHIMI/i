@@ -5,13 +5,16 @@ services:
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: https://aidepartment.net/api/v1
+        NEXT_PUBLIC_AUTH_API_URL: https://auth.aidepartment.net/v1
         NEXT_PUBLIC_WS_URL: wss://aidepartment.net/ws
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: https://aidepartment.net/api/v1
+      NEXT_PUBLIC_AUTH_API_URL: https://auth.aidepartment.net/v1
       NEXT_PUBLIC_WS_URL: wss://aidepartment.net/ws
     depends_on:
       - backend
+      - auth-service
     expose:
       - "3000"
     networks: [app]
@@ -23,6 +26,38 @@ services:
       timeout: 5s
       retries: 5
       start_period: 60s
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: auth-service/Dockerfile
+    environment:
+      # JWT Keys (set these in production)
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY}
+      # Database (shared with backend)
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Public URL for avatar links
+      AUTH_PUBLIC_BASE_URL: https://auth.aidepartment.net
+      # Email for password reset
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL}
+      FRONTEND_URL: https://aidepartment.net
+    depends_on:
+      - postgres
+    expose:
+      - "8001"
+    networks: [app]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   backend:
     build:
