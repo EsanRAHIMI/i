@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { apiClient } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -16,7 +16,85 @@ export function AvatarCustomization({ onClose, onSave }: AvatarCustomizationProp
   const [error, setError] = useState<string | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [history, setHistory] = useState<Array<{ id: string; filename: string; avatar_url: string }>>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const refreshHistory = useCallback(async () => {
+    const data = await apiClient.listAvatars();
+    setHistory((data?.items || []).map((x: any) => ({ id: x.id, filename: x.filename, avatar_url: x.avatar_url })));
+  }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let mounted = true;
+    const loadHistory = async () => {
+      try {
+        setHistoryLoading(true);
+        const data = await apiClient.listAvatars();
+        if (mounted) {
+          setHistory((data?.items || []).map((x: any) => ({ id: x.id, filename: x.filename, avatar_url: x.avatar_url })));
+        }
+      } catch (e) {
+        try {
+          await new Promise((r) => setTimeout(r, 400));
+          const data = await apiClient.listAvatars();
+          if (mounted) {
+            setHistory((data?.items || []).map((x: any) => ({ id: x.id, filename: x.filename, avatar_url: x.avatar_url })));
+          }
+        } catch {
+          // ignore history errors; user can still upload
+        }
+      } finally {
+        if (mounted) setHistoryLoading(false);
+      }
+    };
+    loadHistory();
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id]);
+
+  const selectFromHistory = useCallback(
+    async (avatarUrl: string) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const updatedUser = await apiClient.selectAvatar(avatarUrl);
+        if (updatedUser && updatedUser.avatar_url) {
+          await updateUser({ avatar_url: updatedUser.avatar_url });
+        }
+        onSave?.({ avatar_url: updatedUser.avatar_url, selected_at: new Date().toISOString() });
+        onClose?.();
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.detail || err.message || 'Failed to select avatar';
+        setError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [onClose, onSave, updateUser]
+  );
+
+  const deleteFromHistory = useCallback(
+    async (avatarId: string) => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const updatedUser = await apiClient.deleteAvatar(avatarId);
+        if (updatedUser && 'avatar_url' in updatedUser) {
+          await updateUser({ avatar_url: (updatedUser as any).avatar_url });
+        }
+        await refreshHistory();
+      } catch (err: any) {
+        const errorMessage = err.response?.data?.detail || err.message || 'Failed to delete avatar';
+        setError(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [refreshHistory, updateUser]
+  );
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -119,8 +197,8 @@ export function AvatarCustomization({ onClose, onSave }: AvatarCustomizationProp
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-dark-800 rounded-lg border border-gray-700 w-full max-w-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl dark:bg-gray-900">
         <div className="p-6 border-b border-gray-700">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-white">Customize Your Avatar</h2>
@@ -133,18 +211,58 @@ export function AvatarCustomization({ onClose, onSave }: AvatarCustomizationProp
               </svg>
             </button>
           </div>
+
+          {/* Previous Avatars */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Previous avatars</h3>
+            {historyLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <LoadingSpinner size="sm" />
+              </div>
+            ) : history.length === 0 ? (
+              <div className="text-sm text-gray-500 dark:text-gray-400">No previous avatars</div>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {history.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="overflow-hidden rounded-md border border-gray-200 hover:border-gray-400 dark:border-gray-700"
+                    onClick={() => selectFromHistory(item.avatar_url)}
+                    disabled={isLoading}
+                    title={item.filename}
+                  >
+                    <div className="relative">
+                      <img src={item.avatar_url} alt={item.filename} className="h-16 w-full object-cover" />
+                      <button
+                        type="button"
+                        className="absolute right-1 top-1 rounded bg-black/60 px-1 text-xs text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteFromHistory(item.id);
+                        }}
+                        disabled={isLoading}
+                        title="Delete"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <p className="text-gray-400 text-sm mt-2">
             Upload a selfie to create a personalized 3D avatar
           </p>
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Upload Area */}
+          {/* Upload Section */}
           <div
-            className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-primary-500 transition-colors cursor-pointer"
+            className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 p-8 text-center dark:border-gray-700"
             onDrop={handleDrop}
             onDragOver={handleDragOver}
-            onClick={() => fileInputRef.current?.click()}
           >
             <input
               ref={fileInputRef}

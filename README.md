@@ -127,3 +127,7 @@ Terminal 3: Frontend
 cd frontend
 npm run dev
 ```
+------------------------
+git add .
+git commit -m "update s3 settings"
+git push

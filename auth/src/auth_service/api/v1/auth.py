@@ -21,7 +21,7 @@ from pydantic import BaseModel
 from ...database.base import get_db
 from ...services.auth import auth_service
 from ...config import settings
-from ...database.models import User, UserSettings
+from ...database.models import User, UserSettings, UserAvatar
 from ...auth_utils import jwt_manager
 from ...core.token_blacklist import blacklist_refresh_jti
 from ...schemas.auth import (
@@ -38,6 +38,10 @@ router = APIRouter()
 class LogoutRequest(BaseModel):
     refresh_token: Optional[str] = None
 
+
+class AvatarSelectRequest(BaseModel):
+    avatar_url: str
+
 # Avatar upload configuration
 _DEFAULT_AVATAR_UPLOAD_DIR = Path(__file__).resolve().parents[4] / "uploads" / "avatars"
 AVATAR_UPLOAD_DIR = Path(os.getenv("AVATAR_UPLOAD_DIR", str(_DEFAULT_AVATAR_UPLOAD_DIR)))
@@ -45,6 +49,19 @@ AVATAR_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"}
 MAX_AVATAR_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+def _sanitize_username(username: str) -> str:
+    username = (username or "").strip().lower()
+    username = re.sub(r"[^a-z0-9._-]+", "-", username)
+    username = re.sub(r"-+", "-", username).strip("-.")
+    return username or "user"
+
+
+def _username_for_user(user: User) -> str:
+    email = (getattr(user, "email", None) or "").strip()
+    local = email.split("@", 1)[0] if "@" in email else email
+    return _sanitize_username(local)
 
 
 def _s3_bucket_name() -> Optional[str]:
@@ -58,15 +75,83 @@ def _s3_prefix() -> str:
     return prefix or "avatars"
 
 
+def _s3_key_for_user_id_filename(user_id: str, filename: str) -> str:
+    user_id = (user_id or "").strip()
+    return f"{_s3_prefix()}/{user_id}/{filename}"
+
+
+def _s3_user_id_from_filename(filename: str) -> Optional[str]:
+    # We generate filenames as <user_id>_<random>.<ext>
+    if not isinstance(filename, str) or "_" not in filename:
+        return None
+    candidate = filename.split("_", 1)[0]
+    try:
+        uuid.UUID(candidate)
+        return candidate
+    except Exception:
+        return None
+
+
 def _s3_key_for_filename(filename: str) -> str:
+    user_id = _s3_user_id_from_filename(filename)
+    if user_id:
+        return f"{_s3_prefix()}/{user_id}/{filename}"
+    return f"{_s3_prefix()}/{filename}"
+
+
+def _s3_legacy_key_for_filename(filename: str) -> str:
+    # Backward compatibility for objects stored as avatars/<filename>
     return f"{_s3_prefix()}/{filename}"
 
 
 def _cloudfront_base_url() -> Optional[str]:
     base = settings.CLOUDFRONT_BASE_URL or os.getenv("CLOUDFRONT_BASE_URL")
-    if isinstance(base, str):
-        base = base.strip()
-    return base.rstrip("/") if base else None
+    if not isinstance(base, str) or not base.strip():
+        return None
+    return base.strip().rstrip("/")
+
+
+def _cloudfront_url_for_s3_key(s3_key: str) -> Optional[str]:
+    base = _cloudfront_base_url()
+    if not base:
+        return None
+    key = (s3_key or "").lstrip("/")
+    return f"{base}/{key}" if key else None
+
+
+def _is_local_host(hostname: Optional[str]) -> bool:
+    return hostname in {"localhost", "127.0.0.1"}
+
+
+def _avatar_url_for_filename(filename: str, request: Optional[Request]) -> str:
+    is_local_request = bool(request and _is_local_host(request.url.hostname))
+    cloudfront_base = _cloudfront_base_url()
+    if cloudfront_base and not is_local_request:
+        return f"{cloudfront_base}/{_s3_key_for_filename(filename)}"
+    if settings.AUTH_PUBLIC_BASE_URL and not is_local_request:
+        return f"{settings.AUTH_PUBLIC_BASE_URL.rstrip('/')}/v1/auth/avatar/{filename}"
+    return f"/v1/auth/avatar/{filename}"
+
+
+def _extract_avatar_filename(avatar_url: str) -> Optional[str]:
+    if not isinstance(avatar_url, str) or not avatar_url.strip():
+        return None
+    url = avatar_url.strip()
+    try:
+        parsed = urlsplit(url)
+        path = parsed.path if parsed.scheme in {"http", "https"} else url
+    except Exception:
+        path = url
+
+    if path.startswith("/api/v1/auth/avatar/"):
+        path = path.replace("/api/v1/auth/avatar/", "/v1/auth/avatar/")
+    if path.startswith("/v1/avatar/"):
+        path = path.replace("/v1/avatar/", "/v1/auth/avatar/")
+
+    # Accept either /v1/auth/avatar/<filename> or /avatars/<filename>
+    if "/v1/auth/avatar/" in path:
+        return path.split("/v1/auth/avatar/")[-1].split("/")[-1]
+    return path.split("/")[-1] if "/" in path else path
 
 
 def _get_s3_client():
@@ -229,21 +314,15 @@ async def get_current_user(
         if user.avatar_url:
             normalized_avatar_url = user.avatar_url
 
-            # If stored as absolute URL, prefer returning the path part for localhost dev
-            # to avoid CORS issues when running the UI on localhost.
+            # If stored as absolute URL (CloudFront/S3), keep it as-is.
+            # Frontend can load absolute URLs directly, and rewriting to local paths
+            # breaks S3-backed avatars (it also triggered local filesystem checks).
             try:
                 parsed = urlsplit(normalized_avatar_url)
-                if parsed.scheme in {"http", "https"} and parsed.path:
-                    if request.url.hostname in {"localhost", "127.0.0.1"}:
-                        # If the absolute URL points directly to an S3/CloudFront object
-                        # (e.g. /avatars/<filename>), map it to our local avatar endpoint.
-                        filename = parsed.path.split("/")[-1]
-                        if filename:
-                            normalized_avatar_url = f"/v1/auth/avatar/{filename}"
-                        else:
-                            normalized_avatar_url = parsed.path
+                if parsed.scheme in {"http", "https"}:
+                    parsed = None
             except Exception:
-                pass
+                parsed = None
 
             if normalized_avatar_url.startswith("/api/v1/auth/avatar/"):
                 normalized_avatar_url = normalized_avatar_url.replace(
@@ -260,9 +339,21 @@ async def get_current_user(
             if normalized_avatar_url.startswith("/v1/auth/avatar/"):
                 filename = normalized_avatar_url.split("/")[-1]
                 if filename:
-                    avatar_path = AVATAR_UPLOAD_DIR / filename
-                    if not avatar_path.exists():
-                        normalized_avatar_url = None
+                    bucket = _s3_bucket_name()
+                    if bucket:
+                        # S3-backed: validate against DB history rather than local filesystem.
+                        exists = (
+                            db.query(UserAvatar.id)
+                            .filter(UserAvatar.user_id == user_id, UserAvatar.filename == filename)
+                            .first()
+                        )
+                        if not exists:
+                            normalized_avatar_url = None
+                    else:
+                        # Local-only: keep legacy behavior
+                        avatar_path = AVATAR_UPLOAD_DIR / filename
+                        if not avatar_path.exists():
+                            normalized_avatar_url = None
 
             if normalized_avatar_url != user.avatar_url:
                 user.avatar_url = normalized_avatar_url
@@ -577,8 +668,10 @@ async def upload_avatar(
         
         avatar_filename = f"{user_id}_{uuid.uuid4().hex}{file_extension}"
         bucket = _s3_bucket_name()
+        s3_key: Optional[str] = None
+        public_url: Optional[str] = None
         if bucket:
-            s3_key = _s3_key_for_filename(avatar_filename)
+            s3_key = _s3_key_for_user_id_filename(str(user_id), avatar_filename)
             s3 = _get_s3_client()
             try:
                 s3.put_object(
@@ -588,12 +681,15 @@ async def upload_avatar(
                     ContentType=file.content_type or "application/octet-stream",
                     CacheControl="public, max-age=31536000",
                 )
+                s3.head_object(Bucket=bucket, Key=s3_key)
             except ClientError as e:
                 logger.error("S3 avatar upload failed", error=str(e), bucket=bucket, key=s3_key)
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Failed to upload avatar"
                 )
+
+            public_url = _cloudfront_url_for_s3_key(s3_key)
         else:
             avatar_path = AVATAR_UPLOAD_DIR / avatar_filename
             
@@ -601,38 +697,27 @@ async def upload_avatar(
             with open(avatar_path, "wb") as f:
                 f.write(content)
         
-        # Generate avatar URL
-        # For localhost development we intentionally return a relative path to avoid
-        # generating absolute production URLs that will trigger browser CORS blocks.
-        is_local_request = bool(request and request.url.hostname in {"localhost", "127.0.0.1"})
-        cloudfront_base = _cloudfront_base_url()
-        if cloudfront_base and not is_local_request:
-            avatar_url = f"{cloudfront_base}/{_s3_key_for_filename(avatar_filename)}"
-        elif settings.AUTH_PUBLIC_BASE_URL and not is_local_request:
-            avatar_url = f"{settings.AUTH_PUBLIC_BASE_URL.rstrip('/')}/v1/auth/avatar/{avatar_filename}"
-        else:
-            avatar_url = f"/v1/auth/avatar/{avatar_filename}"
+        avatar_url = public_url or _avatar_url_for_filename(avatar_filename, request)
         
-        # Delete old avatar if exists
-        if user.avatar_url:
-            old_filename = user.avatar_url.split("/")[-1]
-            if bucket:
-                old_key = _s3_key_for_filename(old_filename)
-                s3 = _get_s3_client()
-                try:
-                    s3.delete_object(Bucket=bucket, Key=old_key)
-                except ClientError as e:
-                    logger.warning("Failed to delete old avatar from S3", error=str(e), bucket=bucket, key=old_key)
-            else:
-                old_path = AVATAR_UPLOAD_DIR / old_filename
-                if old_path.exists():
-                    try:
-                        old_path.unlink()
-                    except Exception as e:
-                        logger.warning(f"Failed to delete old avatar: {e}")
+        # Intentionally do not delete old avatars to allow avatar history/selection.
         
         # Update user avatar URL
         user.avatar_url = avatar_url
+
+        # Persist avatar metadata for history/selection
+        try:
+            avatar_row = UserAvatar(
+                user_id=user_id,
+                filename=avatar_filename,
+                s3_key=s3_key,
+                public_url=public_url,
+                content_type=file.content_type,
+                size=len(content),
+            )
+            db.add(avatar_row)
+        except Exception:
+            # Don't block upload if history insert fails
+            pass
         db.commit()
         db.refresh(user)
         
@@ -658,7 +743,7 @@ async def upload_avatar(
 
 
 @router.get("/avatar/{filename}")
-async def get_avatar(filename: str):
+async def get_avatar(filename: str, db: Session = Depends(get_db)):
     """Get avatar image file."""
     try:
         if (
@@ -675,10 +760,27 @@ async def get_avatar(filename: str):
 
         bucket = _s3_bucket_name()
         if bucket:
-            s3_key = _s3_key_for_filename(filename)
+            s3_key = None
+            row = (
+                db.query(UserAvatar)
+                .filter(UserAvatar.filename == filename)
+                .order_by(UserAvatar.created_at.desc())
+                .first()
+            )
+            if row and row.s3_key:
+                s3_key = row.s3_key
+            else:
+                s3_key = _s3_key_for_filename(filename)
             s3 = _get_s3_client()
             try:
-                obj = s3.get_object(Bucket=bucket, Key=s3_key)
+                try:
+                    obj = s3.get_object(Bucket=bucket, Key=s3_key)
+                except ClientError as e:
+                    code = (e.response or {}).get("Error", {}).get("Code")
+                    if code in {"NoSuchKey", "404", "NotFound"}:
+                        obj = s3.get_object(Bucket=bucket, Key=_s3_legacy_key_for_filename(filename))
+                    else:
+                        raise
                 body = obj["Body"]
                 content_type = obj.get("ContentType") or "application/octet-stream"
 
@@ -734,4 +836,229 @@ async def get_avatar(filename: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve avatar"
+        )
+
+
+@router.get("/avatar/list")
+@router.get("/avatar/list/")
+async def list_avatars(request: Request, db: Session = Depends(get_db)):
+    """List previously uploaded avatars for the current user."""
+    try:
+        user_id = getattr(request.state, "user_id", None)
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required"
+            )
+
+        results = []
+        rows = (
+            db.query(UserAvatar)
+            .filter(UserAvatar.user_id == user_id)
+            .order_by(UserAvatar.created_at.desc())
+            .limit(200)
+            .all()
+        )
+        for row in rows:
+            results.append(
+                {
+                    "id": str(row.id),
+                    "filename": row.filename,
+                    "avatar_url": row.public_url or _avatar_url_for_filename(row.filename, request),
+                    "last_modified": row.created_at,
+                    "size": row.size,
+                }
+            )
+
+        return {"items": results}
+
+    except HTTPException:
+        raise
+    except ClientError as e:
+        logger.error("Avatar list failed", error=str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to list avatars"
+        )
+
+
+@router.delete("/avatar/history/{avatar_id}", response_model=UserResponse)
+@router.delete("/avatar/history/{avatar_id}/", response_model=UserResponse)
+async def delete_avatar(
+    avatar_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Delete a previously uploaded avatar (DB + S3)."""
+    try:
+        user_id = getattr(request.state, "user_id", None)
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required",
+            )
+
+        user = auth_service.get_user_by_id(db, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+
+        avatar_pk = avatar_id
+        try:
+            avatar_pk = uuid.UUID(str(avatar_id))
+        except Exception:
+            avatar_pk = avatar_id
+
+        row = (
+            db.query(UserAvatar)
+            .filter(UserAvatar.id == avatar_pk, UserAvatar.user_id == user_id)
+            .first()
+        )
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Avatar not found",
+            )
+
+        bucket = _s3_bucket_name()
+        if bucket and row.s3_key:
+            s3 = _get_s3_client()
+            try:
+                s3.delete_object(Bucket=bucket, Key=row.s3_key)
+            except ClientError as e:
+                code = (e.response or {}).get("Error", {}).get("Code")
+                if code not in {"NoSuchKey", "404", "NotFound"}:
+                    raise
+        else:
+            avatar_path = AVATAR_UPLOAD_DIR / row.filename
+            try:
+                if avatar_path.exists():
+                    avatar_path.unlink()
+            except Exception:
+                pass
+
+        deleted_public_url = row.public_url
+        deleted_filename = row.filename
+
+        db.delete(row)
+        db.commit()
+
+        current = (user.avatar_url or "")
+        is_current_deleted = False
+        if deleted_public_url and current == deleted_public_url:
+            is_current_deleted = True
+        if current.startswith("/v1/auth/avatar/") and deleted_filename and current.endswith(f"/{deleted_filename}"):
+            is_current_deleted = True
+
+        if is_current_deleted:
+            latest = (
+                db.query(UserAvatar)
+                .filter(UserAvatar.user_id == user_id)
+                .order_by(UserAvatar.created_at.desc())
+                .first()
+            )
+            if latest:
+                user.avatar_url = latest.public_url or _avatar_url_for_filename(latest.filename, request)
+            else:
+                user.avatar_url = None
+            db.commit()
+            db.refresh(user)
+
+        return UserResponse(
+            id=str(user.id),
+            email=user.email,
+            avatar_url=user.avatar_url,
+            timezone=user.timezone,
+            language_preference=user.language_preference,
+            created_at=user.created_at,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Avatar delete failed", error=str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete avatar",
+        )
+
+
+@router.post("/avatar/select", response_model=UserResponse)
+@router.post("/avatar/select/", response_model=UserResponse)
+async def select_avatar(
+    payload: AvatarSelectRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """Select a previously uploaded avatar as the current avatar."""
+    try:
+        user_id = getattr(request.state, "user_id", None)
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication required"
+            )
+
+        user = auth_service.get_user_by_id(db, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        filename = _extract_avatar_filename(payload.avatar_url)
+        if not filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid avatar_url"
+            )
+
+        if (
+            not filename
+            or "/" in filename
+            or "\\" in filename
+            or ".." in filename
+            or not re.fullmatch(r"[A-Za-z0-9._-]+", filename)
+            or not filename.startswith(f"{user_id}_")
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid filename"
+            )
+
+        # Ensure this avatar exists in DB and belongs to the user
+        exists = (
+            db.query(UserAvatar)
+            .filter(UserAvatar.user_id == user_id, UserAvatar.filename == filename)
+            .order_by(UserAvatar.created_at.desc())
+            .first()
+        )
+        if not exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Avatar not found"
+            )
+
+        user.avatar_url = exists.public_url or _avatar_url_for_filename(filename, request)
+        db.commit()
+        db.refresh(user)
+
+        return UserResponse(
+            id=str(user.id),
+            email=user.email,
+            avatar_url=user.avatar_url,
+            timezone=user.timezone,
+            language_preference=user.language_preference,
+            created_at=user.created_at,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Avatar select failed", error=str(e), exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to select avatar"
         )

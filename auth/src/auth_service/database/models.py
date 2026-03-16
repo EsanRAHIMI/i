@@ -55,6 +55,7 @@ class User(Base, IdMixin, TimestampMixin):
 
     # Relationships
     settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    avatars = relationship("UserAvatar", back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email})>"
@@ -91,6 +92,21 @@ class PasswordResetToken(Base):
 
     def __repr__(self):
         return f"<PasswordResetToken(id={self.id}, user_id={self.user_id}, expires_at={self.expires_at}, used={self.used_at is not None})>"
+
+
+class UserAvatar(Base, IdMixin, TimestampMixin):
+    """User avatar metadata (S3 key, filename, etc.)."""
+
+    __tablename__ = "user_avatars"
+
+    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    filename = Column(String(255), nullable=False, index=True)
+    s3_key = Column(Text, nullable=True)
+    public_url = Column(Text, nullable=True)
+    content_type = Column(String(100), nullable=True)
+    size = Column(Integer, nullable=True)
+
+    user = relationship("User", back_populates="avatars")
 
 
 

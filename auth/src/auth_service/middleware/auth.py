@@ -91,10 +91,17 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         
         # Check public GET paths
         if request.method == "GET":
+            # Avatar management endpoints must remain authenticated
+            if path in {"/v1/auth/avatar/list", "/v1/auth/avatar/list/"}:
+                return True
+
+            # Only the actual avatar file endpoint should be public
             for public_path in self.PUBLIC_GET_PATHS:
                 if path.startswith(public_path):
-                    return False
-        
+                    suffix = path[len(public_path):]
+                    if suffix and "/" not in suffix:
+                        return False
+
         return True
 
     async def dispatch(self, request: Request, call_next):

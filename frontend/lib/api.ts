@@ -1,7 +1,7 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { User, UserSettings, Task, CalendarEvent, CalendarConnection, AgentResponse } from '@/types';
 
-class ApiClient {
+export class ApiClient {
   private client: AxiosInstance;
   private authClient: AxiosInstance;
 
@@ -175,6 +175,11 @@ class ApiClient {
     return null;
   }
 
+  private getAuthHeaders(): Record<string, string> {
+    const token = this.getAuthToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
   private getRefreshToken(): string | null {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('auth_refresh_token');
@@ -330,6 +335,31 @@ class ApiClient {
       console.error('Error message:', error.message);
       throw error;
     }
+  }
+
+  async listAvatars(): Promise<{
+    items: Array<{ id: string; filename: string; avatar_url: string; last_modified?: string; size?: number }>;
+  }> {
+    const response = await this.authClient.get('/v1/auth/avatar/list/', {
+      headers: this.getAuthHeaders(),
+    });
+    return response.data;
+  }
+
+  async selectAvatar(avatarUrl: string): Promise<User> {
+    const response = await this.authClient.post(
+      '/v1/auth/avatar/select/',
+      { avatar_url: avatarUrl },
+      { headers: this.getAuthHeaders() }
+    );
+    return response.data;
+  }
+
+  async deleteAvatar(avatarId: string): Promise<User> {
+    const response = await this.authClient.delete(`/v1/auth/avatar/history/${avatarId}/`, {
+      headers: this.getAuthHeaders(),
+    });
+    return response.data;
   }
 
   // Settings endpoints
