@@ -8,8 +8,10 @@ import { useAppStore } from '@/store/useAppStore';
 import { GlowingOrb } from '@/components/ui/GlowingOrb';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { isValidEmail } from '@/lib/utils';
+import { useT } from '@/i18n/useT';
 
 export default function LoginPage() {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -95,10 +97,13 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-md space-y-8">
-        <div className="text-center space-y-6">
-          <GlowingOrb size="large" className="mx-auto" />
-          <div>
-            <h1 className="text-3xl font-bold text-white">Welcome back</h1>
+        <div className="relative text-center">
+          {/* Take orb out of flow to prevent layout shift / gradient overlap */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
+            <GlowingOrb size="large" className="opacity-95" />
+          </div>
+          <div className="relative z-10 pt-40 space-y-2">
+            <h1 className="text-3xl font-bold text-white">{t('auth.welcomeBack')}</h1>
             <p className="text-gray-400 mt-2">Sign in to your i Assistant</p>
           </div>
         </div>
@@ -113,7 +118,7 @@ export default function LoginPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                Email address
+                {t('auth.email')}
               </label>
               <input
                 id="email"
@@ -130,7 +135,7 @@ export default function LoginPage() {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                Password
+                {t('auth.password')}
               </label>
               <input
                 id="password"
@@ -148,28 +153,28 @@ export default function LoginPage() {
 
           <div className="flex items-center justify-end">
             <Link href="/auth/forgot-password" className="text-sm text-primary-400 hover:text-primary-300 font-medium">
-              Forgot password?
+              {t('auth.forgotPassword')}
             </Link>
           </div>
 
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+            className="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
                 <LoadingSpinner size="sm" />
-                <span>Signing in...</span>
+                <span>{t('auth.signingIn')}</span>
               </>
             ) : (
-              <span>Sign in</span>
+              <span>{t('auth.signIn')}</span>
             )}
           </button>
 
           <div className="text-center">
             <p className="text-gray-400">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link href="/auth/register" className="text-primary-400 hover:text-primary-300 font-medium">
                 Sign up
               </Link>

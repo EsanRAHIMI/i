@@ -224,12 +224,23 @@ export function AvatarCustomization({ onClose, onSave }: AvatarCustomizationProp
             ) : (
               <div className="grid grid-cols-4 gap-2">
                 {history.map((item) => (
-                  <button
+                  <div
                     key={item.id}
-                    type="button"
+                    role="button"
+                    tabIndex={isLoading ? -1 : 0}
+                    aria-disabled={isLoading}
                     className="overflow-hidden rounded-md border border-gray-200 hover:border-gray-400 dark:border-gray-700"
-                    onClick={() => selectFromHistory(item.avatar_url)}
-                    disabled={isLoading}
+                    onClick={() => {
+                      if (isLoading) return;
+                      selectFromHistory(item.avatar_url);
+                    }}
+                    onKeyDown={(e) => {
+                      if (isLoading) return;
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        selectFromHistory(item.avatar_url);
+                      }
+                    }}
                     title={item.filename}
                   >
                     <div className="relative">
@@ -247,7 +258,7 @@ export function AvatarCustomization({ onClose, onSave }: AvatarCustomizationProp
                         ×
                       </button>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
             )}

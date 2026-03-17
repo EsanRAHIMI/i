@@ -59,6 +59,8 @@ export default function FloatingGlassDock({
   const [partialTranscript, setPartialTranscript] = useState('');
   const [finalTranscript, setFinalTranscript] = useState('');
 
+  const wsConnectedRef = useRef(false);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -69,11 +71,13 @@ export default function FloatingGlassDock({
   const {
     isConnected,
     connectionState,
+    connect,
     sendVoiceData,
     sendVoiceStart,
     sendVoiceEnd,
   } = useWebSocket({
-    enabled: open || isStreaming,
+    enabled: true,
+    autoConnect: false,
     onMessage: (message) => {
       switch (message.type) {
         case 'transcript_partial':
@@ -113,7 +117,17 @@ export default function FloatingGlassDock({
     }
   });
 
-  useEffect(() => setOpen(agentOpen), [agentOpen]);
+  useEffect(() => {
+    wsConnectedRef.current = isConnected;
+  }, [isConnected]);
+
+  useEffect(() => {
+    const syncOpenState = requestAnimationFrame(() => {
+      setOpen(agentOpen);
+    });
+
+    return () => cancelAnimationFrame(syncOpenState);
+  }, [agentOpen]);
 
   // Initialize audio context and analyser
   const initAudioContext = useCallback(async () => {
@@ -151,7 +165,7 @@ export default function FloatingGlassDock({
   }, []);
 
   // Monitor audio levels
-  const monitorAudioLevel = useCallback(() => {
+  function monitorAudioLevel() {
     if (!analyserRef.current || !isStreaming) return;
 
     const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
@@ -162,15 +176,10 @@ export default function FloatingGlassDock({
     setAudioLevel(average / 255);
 
     animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
-  }, [isStreaming]);
+  }
 
   // Start streaming
   const startStreaming = useCallback(async () => {
-    if (!isConnected) {
-      logger.warn('WebSocket not connected - voice streaming disabled');
-      return;
-    }
-
     try {
       setIsStreaming(true);
       setPartialTranscript('');
@@ -185,6 +194,22 @@ export default function FloatingGlassDock({
 
       const stream = await initAudioContext();
       
+      // Connect WS only when streaming starts (prevents connect/disconnect churn)
+      if (!isConnected) {
+        connect();
+        const deadline = Date.now() + 2000;
+        while (!wsConnectedRef.current && Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, 50));
+        }
+      }
+
+      if (!wsConnectedRef.current) {
+        logger.warn('WebSocket not connected - voice streaming disabled');
+        setIsStreaming(false);
+        updateVoiceSession({ status: 'idle' });
+        return;
+      }
+
       // Start WebSocket voice session
       sendVoiceStart();
 
@@ -214,7 +239,7 @@ export default function FloatingGlassDock({
       setIsStreaming(false);
       updateVoiceSession({ status: 'idle' });
     }
-  }, [isConnected, initAudioContext, sendVoiceStart, sendVoiceData, monitorAudioLevel, setVoiceSession, updateVoiceSession]);
+  }, [connect, isConnected, initAudioContext, sendVoiceStart, sendVoiceData, monitorAudioLevel, setVoiceSession, updateVoiceSession]);
 
   // Stop streaming
   const stopStreaming = useCallback(() => {
@@ -344,10 +369,10 @@ export default function FloatingGlassDock({
     <>
       <div
         aria-label="Voice control dock"
-        className={`pointer-events-auto fixed inset-x-0 bottom-[max(env(safe-area-inset-bottom),1rem)] z-50 mx-auto w-full max-w-[560px] px-4 ${className}`}
+        className={`pointer-events-auto fixed bottom-[max(env(safe-area-inset-bottom),0.75rem)] left-1/2 z-50 w-[min(34rem,calc(100vw-1rem))] -translate-x-1/2 sm:bottom-[max(env(safe-area-inset-bottom),1rem)] sm:w-[min(36rem,calc(100vw-2rem))] ${className}`}
       >
         <div
-          className="relative mx-auto flex items-center justify-between rounded-2xl border border-white/15 bg-white/10 py-1 px-3 pb-2 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:border-white/10 dark:bg-black/30"
+          className="relative flex w-full items-center justify-between rounded-[1.75rem] border border-white/15 bg-white/10 px-3 py-2 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:px-4 xl:py-1 xl:pb-2"
           role="toolbar"
           aria-roledescription="dock"
         >
@@ -372,7 +397,7 @@ export default function FloatingGlassDock({
                   : "Open voice agent"
             }
             className={`
-              relative grid h-20 w-20 -translate-y-3 place-items-center rounded-full border shadow-2xl transition-all duration-200
+              relative grid h-[3.75rem] w-[3.75rem] place-items-center rounded-full border shadow-2xl transition-all duration-200 sm:h-16 sm:w-16 xl:h-20 xl:w-20 xl:-translate-y-3
               ${isStreaming 
                 ? 'border-red-400/50 bg-red-500/30 hover:bg-red-500/40' 
                 : open 
@@ -472,7 +497,7 @@ function GlassButton({
       aria-label={ariaLabel}
       title={tooltip}
       onClick={onClick}
-      className="grid h-12 w-12 place-items-center rounded-xl border border-white/20 bg-white/10 text-sm shadow-lg transition-all hover:translate-y-[-1px] hover:bg-white/20 active:translate-y-0 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+      className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-sm shadow-lg transition-all hover:translate-y-[-1px] hover:bg-white/20 active:translate-y-0 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 sm:h-11 sm:w-11 xl:h-12 xl:w-12"
     >
       {children}
     </button>
@@ -562,7 +587,7 @@ function AgentGeniePopup({
               <button
                 onClick={onClose}
                 aria-label="Close agent"
-                className="absolute right-3 top-3 z-10 rounded-full border border-white/20 bg-white/10 p-1 hover:bg-white/20"
+                className="absolute end-3 top-3 z-10 rounded-full border border-white/20 bg-white/10 p-1 hover:bg-white/20"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -595,7 +620,7 @@ function AgentGeniePopup({
                     )}
                     {(finalTranscript || voiceSession?.transcript) && (
                       <p className="opacity-90 font-medium">
-                        "{finalTranscript || voiceSession?.transcript}"
+                        &quot;{finalTranscript || voiceSession?.transcript}&quot;
                       </p>
                     )}
                     {voiceSession?.confidence && (

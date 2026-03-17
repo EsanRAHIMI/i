@@ -22,17 +22,12 @@ interface SchedulingSuggestion {
 
 export function CalendarIntegrationView({ className }: CalendarIntegrationViewProps) {
   const { events, user, setEvents } = useAppStore();
-  const [isConnected, setIsConnected] = useState(false);
+  const [hasConnectedCalendar, setHasConnectedCalendar] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [suggestions, setSuggestions] = useState<SchedulingSuggestion[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
-
-  // Check if calendar is connected
-  useEffect(() => {
-    // In a real implementation, this would check the user's calendar connection status
-    setIsConnected(!!user?.email); // Mock: assume connected if user exists
-  }, [user]);
+  const isConnected = hasConnectedCalendar || !!user?.email;
 
   // Generate scheduling suggestions
   const generateSuggestions = () => {
@@ -135,7 +130,7 @@ export function CalendarIntegrationView({ className }: CalendarIntegrationViewPr
       
       // Mock successful connection after a delay
       setTimeout(() => {
-        setIsConnected(true);
+        setHasConnectedCalendar(true);
         setIsConnecting(false);
       }, 3000);
     } catch (error) {
@@ -205,30 +200,30 @@ export function CalendarIntegrationView({ className }: CalendarIntegrationViewPr
   return (
     <div className={className}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-white">Calendar Integration</h2>
-          <p className="text-gray-400 text-sm">Smart scheduling and calendar management</p>
+      <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold tracking-tight text-white sm:text-xl">Calendar Integration</h2>
+          <p className="text-sm leading-6 text-gray-400">Smart scheduling and calendar management</p>
         </div>
         
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-dark-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/80 transition-colors focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500/60 sm:min-w-44 sm:w-auto"
           />
           
           {isConnected ? (
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full" />
-              <span className="text-sm text-green-400">Connected</span>
+            <div className="inline-flex items-center gap-2 rounded-full border border-green-500/20 bg-green-500/10 px-3 py-2 text-sm font-medium text-green-300">
+              <div className="h-2 w-2 rounded-full bg-green-400" />
+              <span>Connected</span>
             </div>
           ) : (
             <button
               onClick={connectCalendar}
               disabled={isConnecting}
-              className="px-3 py-1 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+              className="w-full rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50 sm:w-auto"
             >
               {isConnecting ? 'Connecting...' : 'Connect Google Calendar'}
             </button>
@@ -239,12 +234,12 @@ export function CalendarIntegrationView({ className }: CalendarIntegrationViewPr
       {isConnected ? (
         <div className="space-y-6">
           {/* Today's Schedule */}
-          <div className="bg-dark-800 rounded-lg border border-gray-700 p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-white">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-5">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="text-base font-semibold tracking-tight text-white sm:text-lg">
                 Schedule for {formatDate(selectedDate)}
               </h3>
-              <span className="text-sm text-gray-400">
+              <span className="text-sm font-medium text-gray-400">
                 {dayEvents.length} event{dayEvents.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -254,16 +249,16 @@ export function CalendarIntegrationView({ className }: CalendarIntegrationViewPr
                 {dayEvents
                   .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
                   .map((event) => (
-                    <div key={event.id} className="flex items-center space-x-3 p-2 bg-dark-900 rounded">
-                      <div className="w-2 h-8 bg-blue-500 rounded" />
+                    <div key={event.id} className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 sm:items-center sm:p-4">
+                      <div className="h-10 w-1.5 rounded-full bg-blue-500/70" />
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-white">{event.title}</p>
+                        <p className="text-sm font-medium leading-6 text-white">{event.title}</p>
                         <p className="text-xs text-gray-400">
                           {formatTime(event.start_time)} - {formatTime(event.end_time)}
                         </p>
                       </div>
                       {event.ai_generated && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                        <span className="inline-flex items-center rounded-full border border-primary-500/20 bg-primary-500/15 px-2 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-primary-200">
                           AI
                         </span>
                       )}
@@ -278,13 +273,13 @@ export function CalendarIntegrationView({ className }: CalendarIntegrationViewPr
           </div>
 
           {/* Scheduling Suggestions */}
-          <div className="bg-dark-800 rounded-lg border border-gray-700 p-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-white">AI Scheduling Suggestions</h3>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-xl sm:p-5">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="text-base font-semibold tracking-tight text-white sm:text-lg">AI Scheduling Suggestions</h3>
               <button
                 onClick={generateSuggestions}
                 disabled={isGeneratingSuggestions}
-                className="px-3 py-1 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+                className="w-full rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50 sm:w-auto"
               >
                 {isGeneratingSuggestions ? 'Analyzing...' : 'Generate Suggestions'}
               </button>
@@ -293,16 +288,16 @@ export function CalendarIntegrationView({ className }: CalendarIntegrationViewPr
             {suggestions.length > 0 ? (
               <div className="space-y-3">
                 {suggestions.map((suggestion) => (
-                  <div key={suggestion.id} className="p-3 bg-dark-900 rounded-lg border border-gray-600">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-3">
-                        <div className="p-1 bg-dark-700 rounded">
+                  <div key={suggestion.id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className="rounded-xl border border-white/10 bg-white/10 p-2">
                           {getSuggestionIcon(suggestion.type)}
                         </div>
                         <div className="flex-1">
-                          <h4 className="text-sm font-medium text-white">{suggestion.title}</h4>
-                          <p className="text-xs text-gray-400 mt-1">{suggestion.reason}</p>
-                          <div className="flex items-center space-x-4 mt-2">
+                          <h4 className="text-sm font-medium leading-6 text-white">{suggestion.title}</h4>
+                          <p className="mt-1 text-sm leading-6 text-gray-400">{suggestion.reason}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-3">
                             <span className="text-xs text-gray-500">
                               {formatTime(suggestion.suggestedTime)} ({suggestion.duration}min)
                             </span>
@@ -313,16 +308,16 @@ export function CalendarIntegrationView({ className }: CalendarIntegrationViewPr
                         </div>
                       </div>
                       
-                      <div className="flex space-x-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         <button
                           onClick={() => acceptSuggestion(suggestion)}
-                          className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors"
+                          className="w-full rounded-xl bg-green-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-green-700 sm:w-auto"
                         >
                           Accept
                         </button>
                         <button
                           onClick={() => setSuggestions(prev => prev.filter(s => s.id !== suggestion.id))}
-                          className="px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded transition-colors"
+                          className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-white/15 sm:w-auto"
                         >
                           Dismiss
                         </button>
@@ -333,29 +328,30 @@ export function CalendarIntegrationView({ className }: CalendarIntegrationViewPr
               </div>
             ) : (
               <div className="text-center py-6">
-                <svg className="w-12 h-12 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-                <p className="text-gray-400">No suggestions available</p>
-                <p className="text-gray-500 text-sm">Click "Generate Suggestions" to get AI-powered scheduling recommendations</p>
+                <p className="text-gray-400">
+                  {isGeneratingSuggestions
+                    ? 'Analyzing your calendar...'
+                    : 'No suggestions yet. Generate AI suggestions to optimize your schedule.'}
+                </p>
               </div>
             )}
           </div>
         </div>
       ) : (
-        <div className="text-center py-12">
-          <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-          <h3 className="text-lg font-medium text-white mb-2">Connect Your Calendar</h3>
-          <p className="text-gray-400 max-w-md mx-auto mb-6">
-            Connect your Google Calendar to enable intelligent scheduling suggestions, 
-            automatic event creation, and seamless calendar management through voice commands.
+        <div className="py-12 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-gray-700/70">
+            <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="mb-2 text-lg font-semibold tracking-tight text-white">Connect Your Calendar</h3>
+          <p className="mx-auto max-w-md text-sm leading-6 text-gray-400">
+            Connect your Google Calendar to get AI-powered scheduling suggestions and manage your events.
           </p>
           <button
             onClick={connectCalendar}
             disabled={isConnecting}
-            className="px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+            className="mt-4 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
           >
             {isConnecting ? 'Connecting...' : 'Connect Google Calendar'}
           </button>

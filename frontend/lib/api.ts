@@ -1,5 +1,5 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { User, UserSettings, Task, CalendarEvent, CalendarConnection, AgentResponse } from '@/types';
+import { User, UserSettings, Task, CalendarEvent, CalendarConnection } from '@/types';
 
 export class ApiClient {
   private client: AxiosInstance;
@@ -370,28 +370,6 @@ export class ApiClient {
 
   async updateUserSettings(updates: Partial<UserSettings>): Promise<UserSettings> {
     const response = await this.authClient.patch('/v1/auth/settings', updates);
-    return response.data;
-  }
-
-  // Voice endpoints
-  async speechToText(audioBlob: Blob): Promise<{ text: string; confidence: number }> {
-    const formData = new FormData();
-    formData.append('audio', audioBlob);
-    
-    const response = await this.client.post('/voice/stt', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return response.data;
-  }
-
-  async textToSpeech(text: string): Promise<{ audio_url: string }> {
-    const response = await this.client.post('/voice/tts', { text });
-    return response.data;
-  }
-
-  // Agent endpoints
-  async processIntent(text: string, context?: Record<string, any>): Promise<AgentResponse> {
-    const response = await this.client.post('/agent/intent', { text, context });
     return response.data;
   }
 

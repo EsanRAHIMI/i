@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 
@@ -16,18 +15,14 @@ export function VoiceActivityIndicator({
   showStatus = true 
 }: VoiceActivityIndicatorProps) {
   const { voiceSession } = useAppStore();
-  const [animationKey, setAnimationKey] = useState(0);
-
-  // Reset animation when status changes
-  useEffect(() => {
-    setAnimationKey(prev => prev + 1);
-  }, [voiceSession?.status]);
+  const animationKey = voiceSession?.status ?? 'idle';
 
   const sizeClasses = {
-    sm: 'w-8 h-8',
-    md: 'w-12 h-12',
-    lg: 'w-16 h-16'
+    sm: 'h-9 w-9',
+    md: 'h-12 w-12',
+    lg: 'h-16 w-16'
   };
+  const waveformHeights = [12, 20, 28, 18, 24];
 
   const getIndicatorStyle = () => {
     switch (voiceSession?.status) {
@@ -87,7 +82,7 @@ export function VoiceActivityIndicator({
   };
 
   return (
-    <div className={cn('flex flex-col items-center space-y-2', className)}>
+    <div className={cn('flex flex-col items-center gap-2', className)}>
       {/* Main Indicator */}
       <div
         key={animationKey}
@@ -106,12 +101,12 @@ export function VoiceActivityIndicator({
       {/* Status Text */}
       {showStatus && (
         <div className="text-center">
-          <p className={cn('text-xs font-medium', getStatusColor())}>
+          <p className={cn('text-xs font-medium leading-none', getStatusColor())}>
             {getStatusText()}
           </p>
           
           {voiceSession?.confidence && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-[11px] leading-none text-gray-500">
               {Math.round(voiceSession.confidence * 100)}%
             </p>
           )}
@@ -120,13 +115,13 @@ export function VoiceActivityIndicator({
 
       {/* Waveform Animation for Speaking */}
       {voiceSession?.status === 'speaking' && (
-        <div className="flex items-center space-x-1">
+        <div className="flex items-end gap-1">
           {[...Array(5)].map((_, i) => (
             <div
               key={i}
               className="w-1 bg-blue-400 rounded-full animate-pulse"
               style={{
-                height: `${Math.random() * 20 + 10}px`,
+                height: `${waveformHeights[i]}px`,
                 animationDelay: `${i * 0.1}s`,
                 animationDuration: '0.6s'
               }}
@@ -137,7 +132,7 @@ export function VoiceActivityIndicator({
 
       {/* Processing Dots */}
       {voiceSession?.status === 'processing' && (
-        <div className="flex space-x-1">
+        <div className="flex gap-1">
           {[...Array(3)].map((_, i) => (
             <div
               key={i}

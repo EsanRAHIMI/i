@@ -4,6 +4,7 @@ Voice processing API endpoints for STT and TTS functionality.
 """
 
 import asyncio
+import jwt
 import base64
 import io
 import logging
@@ -23,7 +24,7 @@ from ...schemas.voice import (
     VoiceProfileRequest, VoiceProfileResponse, BufferStatusResponse,
     WebSocketMessage, ErrorResponse
 )
-from ...middleware.auth import get_current_user
+from ...middleware.auth import get_current_user, _load_public_key, _normalize_pem_input
 from ...config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -42,7 +43,6 @@ class ConnectionManager:
         self.active_connections: Dict[str, WebSocket] = {}
     
     async def connect(self, websocket: WebSocket, session_id: str):
-        await websocket.accept()
         self.active_connections[session_id] = websocket
         logger.info(f"WebSocket connected: {session_id}")
     
@@ -369,7 +369,38 @@ async def voice_stream(websocket: WebSocket, session_id: str):
     
     - **session_id**: Unique session identifier
     """
+    # Accept early so failures don't show up as a 403 handshake rejection.
+    await websocket.accept()
+
+    # Authenticate WebSocket via token query param (browser WS can't set headers reliably)
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4401)
+        return
+
+    public_key = _load_public_key()
+    if not public_key:
+        await websocket.close(code=1011)
+        return
+
+    user_id: Optional[str] = None
+    try:
+        key_material = _normalize_pem_input(public_key)
+        payload = jwt.decode(
+            token,
+            key_material,
+            algorithms=[settings.JWT_ALGORITHM],
+            options={"verify_exp": True},
+        )
+        user_id = payload.get("sub")
+    except Exception as e:
+        logger.warning(f"WebSocket JWT decode failed for session {session_id}: {e}")
+        await websocket.close(code=4401)
+        return
+
     await manager.connect(websocket, session_id)
+
+    audio_buffer = bytearray()
     
     try:
         while True:
@@ -393,6 +424,9 @@ async def voice_stream(websocket: WebSocket, session_id: str):
                     # Extract audio data from the message
                     audio_array = message_data.get("audio", [])
                     audio_bytes = bytes(audio_array)
+
+                    if audio_bytes:
+                        audio_buffer.extend(audio_bytes)
                     
                     # Send partial transcription (simulated for now)
                     await manager.send_message(session_id, {
@@ -419,15 +453,28 @@ async def voice_stream(websocket: WebSocket, session_id: str):
             elif message_type == "voice_end":
                 try:
                     logger.info(f"Voice session ended: {session_id}")
-                    
-                    # Process final transcription
-                    # TODO: Implement actual STT processing here
-                    
+
+                    final_text = ""
+                    confidence = 0.0
+                    if audio_buffer:
+                        try:
+                            result = await stt_service.transcribe_audio(
+                                audio_data=bytes(audio_buffer),
+                                language=None,
+                                user_id=user_id,
+                            )
+                            final_text = (result or {}).get("text") or ""
+                            confidence = float((result or {}).get("confidence") or 0.0)
+                        except Exception as e:
+                            logger.error(f"STT failed for session {session_id}: {e}")
+                            final_text = ""
+                            confidence = 0.0
+
                     await manager.send_message(session_id, {
                         "type": "transcript_final",
                         "data": {
-                            "text": "Transcription completed",
-                            "confidence": 0.95,
+                            "text": final_text or "",
+                            "confidence": confidence,
                             "timestamp": time.time()
                         },
                         "timestamp": time.time()
@@ -442,6 +489,8 @@ async def voice_stream(websocket: WebSocket, session_id: str):
                         },
                         "timestamp": time.time()
                     })
+
+                    audio_buffer.clear()
                     
                 except Exception as e:
                     logger.error(f"Voice end processing error: {e}")

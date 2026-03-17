@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { GlowingOrb } from '@/components/ui/GlowingOrb';
+import { useT } from '@/i18n/useT';
 
 // Simple icon components
 const HomeIcon = ({ className }: { className?: string }) => (
@@ -40,37 +41,56 @@ const LogoutIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Tasks', href: '/tasks', icon: TaskIcon },
-  { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
-  { name: 'Settings', href: '/settings', icon: SettingsIcon },
-];
-
 export function Navigation() {
+  const t = useT();
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const { voiceSession } = useAppStore();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+
+  const profileAvatarUrl = useMemo(() => {
+    const avatarUrl = user?.avatar_url;
+    if (!avatarUrl || avatarError) return null;
+    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) return avatarUrl;
+
+    let authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8001';
+    if (authApiUrl.endsWith('/v1')) {
+      authApiUrl = authApiUrl.replace(/\/v1$/, '');
+    }
+
+    const cleanUrl = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`;
+    return `${authApiUrl}${cleanUrl}`;
+  }, [user?.avatar_url, avatarError]);
 
   const handleLogout = async () => {
     await logout();
   };
 
+  const navigation = useMemo(
+    () => [
+      { name: t('nav.dashboard'), href: '/dashboard', icon: HomeIcon },
+      { name: t('nav.tasks'), href: '/tasks', icon: TaskIcon },
+      { name: t('nav.calendar'), href: '/calendar', icon: CalendarIcon },
+      { name: t('nav.settings'), href: '/settings', icon: SettingsIcon },
+    ],
+    [t]
+  );
+
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-        <div className="flex flex-col flex-grow bg-dark-900 border-r border-gray-700 pt-5 pb-4 overflow-y-auto">
-          <div className="flex items-center flex-shrink-0 px-4">
+      <div className="hidden xl:flex xl:fixed xl:inset-y-0 xl:w-72 xl:flex-col">
+        <div className="flex flex-col grow bg-dark-900 border-r border-gray-700 pt-5 pb-4 overflow-y-auto">
+          <div className="flex items-center shrink-0 px-4">
             <GlowingOrb 
               size="sm" 
               isActive={voiceSession?.status === 'listening' || voiceSession?.status === 'processing'} 
             />
-            <span className="ml-3 text-xl font-bold text-white">i Assistant</span>
+            <span className="ms-3 text-xl font-bold text-white">i Assistant</span>
           </div>
           
-          <div className="mt-8 flex-grow flex flex-col">
+          <div className="mt-8 grow flex flex-col">
             <nav className="flex-1 px-2 space-y-1">
               {navigation.map((item) => {
                 const isActive = pathname === item.href;
@@ -87,7 +107,7 @@ export function Navigation() {
                   >
                     <item.icon
                       className={cn(
-                        'mr-3 flex-shrink-0 h-5 w-5',
+                        'me-3 shrink-0 h-5 w-5',
                         isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
                       )}
                     />
@@ -98,24 +118,33 @@ export function Navigation() {
             </nav>
             
             {/* User Profile Section */}
-            <div className="flex-shrink-0 px-4 py-4 border-t border-gray-700">
+            <div className="shrink-0 px-4 py-4 border-t border-gray-700">
               <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-                    <span className="text-sm font-medium text-white">
-                      {user?.email?.charAt(0).toUpperCase()}
-                    </span>
+                <div className="shrink-0">
+                  <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden">
+                    {profileAvatarUrl ? (
+                      <img
+                        src={profileAvatarUrl}
+                        alt={user?.email || 'Profile'}
+                        className="h-8 w-8 object-cover"
+                        onError={() => setAvatarError(true)}
+                      />
+                    ) : (
+                      <span className="text-sm font-medium text-white">
+                        {user?.email?.charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="ml-3 flex-1 min-w-0">
+                <div className="ms-3 flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">
                     {user?.email}
                   </p>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="ml-3 flex-shrink-0 p-1 text-gray-400 hover:text-white transition-colors"
-                  title="Logout"
+                  className="ms-3 shrink-0 p-1 text-gray-400 hover:text-white transition-colors"
+                  title={t('nav.logout')}
                 >
                   <LogoutIcon className="h-5 w-5" />
                 </button>
@@ -126,14 +155,14 @@ export function Navigation() {
       </div>
 
       {/* Mobile Navigation */}
-      <div className="lg:hidden">
-        <div className="flex items-center justify-between bg-dark-900 border-b border-gray-700 px-4 py-3">
+      <div className="xl:hidden">
+        <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-700 bg-dark-900/95 px-4 py-3 backdrop-blur-xl">
           <div className="flex items-center">
             <GlowingOrb 
               size="sm" 
               isActive={voiceSession?.status === 'listening' || voiceSession?.status === 'processing'} 
             />
-            <span className="ml-3 text-lg font-bold text-white">i Assistant</span>
+            <span className="ms-3 text-lg font-bold text-white">i Assistant</span>
           </div>
           
           <button
@@ -147,7 +176,7 @@ export function Navigation() {
         </div>
 
         {isMobileMenuOpen && (
-          <div className="bg-dark-900 border-b border-gray-700">
+          <div className="border-b border-gray-700 bg-dark-900/95 backdrop-blur-xl">
             <nav className="px-2 pt-2 pb-3 space-y-1">
               {navigation.map((item) => {
                 const isActive = pathname === item.href;
@@ -165,7 +194,7 @@ export function Navigation() {
                   >
                     <item.icon
                       className={cn(
-                        'mr-3 flex-shrink-0 h-5 w-5',
+                        'me-3 shrink-0 h-5 w-5',
                         isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
                       )}
                     />
@@ -178,8 +207,8 @@ export function Navigation() {
                 onClick={handleLogout}
                 className="w-full group flex items-center px-2 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors"
               >
-                <LogoutIcon className="mr-3 flex-shrink-0 h-5 w-5 text-gray-400 group-hover:text-gray-300" />
-                Logout
+                <LogoutIcon className="me-3 shrink-0 h-5 w-5 text-gray-400 group-hover:text-gray-300" />
+                {t('nav.logout')}
               </button>
             </nav>
           </div>

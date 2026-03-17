@@ -1,16 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/store/useAppStore';
 import { useAuth } from '@/hooks/useAuth';
 import { apiClient } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { locales, getLocaleConfig } from '@/lib/utils';
 import { Language, UserSettings } from '@/types';
+import { useT } from '@/i18n/useT';
 
 export default function SettingsPage() {
   const { user, settings, updateUser, setSettings } = useAppStore();
   const { updateProfile } = useAuth();
+  const router = useRouter();
+  const t = useT();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -45,6 +49,10 @@ export default function SettingsPage() {
       setError(null);
       setSuccess(null);
 
+      const locale = getLocaleConfig(formData.language_preference);
+      // Persist locale for server-rendered RootLayout (lang/dir) on refresh/navigation
+      document.cookie = `i_locale=${encodeURIComponent(locale.code)}; path=/; max-age=31536000; samesite=lax`;
+
       // Update user profile
       await updateProfile({
         language_preference: formData.language_preference
@@ -60,7 +68,9 @@ export default function SettingsPage() {
       });
 
       setSettings(updatedSettings);
-      setSuccess('Settings saved successfully');
+      setSuccess(t('settings.saved'));
+      // Force App Router to re-render server components with updated cookie.
+      router.refresh();
     } catch (err: any) {
       setError(err.message || 'Failed to save settings');
     } finally {
@@ -116,23 +126,23 @@ export default function SettingsPage() {
   };
 
   const tabs = [
-    { id: 'general', name: 'General', icon: '⚙️' },
-    { id: 'privacy', name: 'Privacy', icon: '🔒' },
-    { id: 'integrations', name: 'Integrations', icon: '🔗' },
-    { id: 'language', name: 'Language', icon: '🌐' }
+    { id: 'general', name: t('settings.tabs.general'), icon: '⚙️' },
+    { id: 'privacy', name: t('settings.tabs.privacy'), icon: '🔒' },
+    { id: 'integrations', name: t('settings.tabs.integrations'), icon: '🔗' },
+    { id: 'language', name: t('settings.tabs.language'), icon: '🌐' }
   ];
 
   return (
     <div className="p-6 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white">Settings</h1>
-        <p className="text-gray-400 mt-1">Customize your i Assistant experience</p>
+        <h1 className="text-3xl font-bold text-white">{t('settings.title')}</h1>
+        <p className="text-gray-400 mt-1">{t('settings.subtitle')}</p>
       </div>
 
       {/* Tabs */}
       <div className="mb-8">
         <div className="border-b border-gray-700">
-          <nav className="-mb-px flex space-x-8">
+          <nav className="-mb-px flex flex-wrap gap-x-8 gap-y-2">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -145,7 +155,7 @@ export default function SettingsPage() {
                   }
                 `}
               >
-                <span className="mr-2">{tab.icon}</span>
+                <span className="me-2">{tab.icon}</span>
                 {tab.name}
               </button>
             ))}
@@ -229,7 +239,7 @@ export default function SettingsPage() {
                     }))}
                     className="rounded border-gray-600 text-primary-600 focus:ring-primary-500"
                   />
-                  <span className="ml-2 text-sm text-gray-300">Email notifications</span>
+                  <span className="ms-2 text-sm text-gray-300">Email notifications</span>
                 </label>
                 
                 <label className="flex items-center">
@@ -245,7 +255,7 @@ export default function SettingsPage() {
                     }))}
                     className="rounded border-gray-600 text-primary-600 focus:ring-primary-500"
                   />
-                  <span className="ml-2 text-sm text-gray-300">Task reminders</span>
+                  <span className="ms-2 text-sm text-gray-300">Task reminders</span>
                 </label>
                 
                 <label className="flex items-center">
@@ -261,7 +271,7 @@ export default function SettingsPage() {
                     }))}
                     className="rounded border-gray-600 text-primary-600 focus:ring-primary-500"
                   />
-                  <span className="ml-2 text-sm text-gray-300">AI insights and recommendations</span>
+                  <span className="ms-2 text-sm text-gray-300">AI insights and recommendations</span>
                 </label>
               </div>
             </div>
@@ -281,7 +291,7 @@ export default function SettingsPage() {
                   { value: 'standard', label: 'Standard', desc: 'Balanced privacy and functionality' },
                   { value: 'enhanced', label: 'Enhanced', desc: 'Full features with comprehensive personalization' }
                 ].map((level) => (
-                  <label key={level.value} className="flex items-start space-x-3">
+                  <label key={level.value} className="flex items-start gap-3">
                     <input
                       type="radio"
                       name="privacy_level"
@@ -303,7 +313,7 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-white">Data Usage Consent</h3>
               <div className="space-y-3">
-                <label className="flex items-start space-x-3">
+                <label className="flex items-start gap-3">
                   <input
                     type="checkbox"
                     checked={formData.voice_training_consent}
@@ -352,8 +362,8 @@ export default function SettingsPage() {
             
             {/* WhatsApp Integration */}
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-dark-900 rounded-lg border border-gray-600">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center justify-between p-4 bg-dark-900 rounded-lg border border-gray-600">
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold">W</span>
                   </div>
@@ -376,7 +386,7 @@ export default function SettingsPage() {
             {/* Calendar Integration */}
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-dark-900 rounded-lg border border-gray-600">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold">G</span>
                   </div>
@@ -399,7 +409,7 @@ export default function SettingsPage() {
             {/* Federated Learning */}
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-dark-900 rounded-lg border border-gray-600">
-                <div className="flex items-center space-x-3">
+                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
                     <span className="text-white font-bold">AI</span>
                   </div>
@@ -436,7 +446,7 @@ export default function SettingsPage() {
               <h3 className="text-lg font-medium text-white">Interface Language</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {Object.entries(locales).map(([code, locale]) => (
-                  <label key={code} className="flex items-center space-x-3 p-3 bg-dark-900 rounded-lg border border-gray-600 hover:border-gray-500 cursor-pointer">
+                  <label key={code} className="flex items-center gap-3 p-3 bg-dark-900 rounded-lg border border-gray-600 hover:border-gray-500 cursor-pointer">
                     <input
                       type="radio"
                       name="language"
@@ -445,7 +455,7 @@ export default function SettingsPage() {
                       onChange={(e) => setFormData(prev => ({ ...prev, language_preference: e.target.value as Language }))}
                       className="text-primary-600 focus:ring-primary-500"
                     />
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center gap-2">
                       <span className="text-lg">{locale.flag}</span>
                       <div>
                         <p className="text-sm font-medium text-white">{locale.name}</p>
@@ -476,7 +486,7 @@ export default function SettingsPage() {
                   )}
                   {formData.language_preference === 'en-US' && (
                     <>
-                      <p className="font-medium">Hello! I'm your intelligent assistant.</p>
+                      <p className="font-medium">Hello! I&apos;m your intelligent assistant.</p>
                       <p className="text-xs text-gray-400 mt-1">How can I help you today?</p>
                     </>
                   )}
@@ -488,7 +498,7 @@ export default function SettingsPage() {
 
         {/* Save Button */}
         <div className="px-6 py-4 border-t border-gray-700">
-          <div className="flex justify-end space-x-3">
+          <div className="flex justify-end gap-3">
             <button
               onClick={() => window.location.reload()}
               className="px-4 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition-colors"
@@ -498,15 +508,15 @@ export default function SettingsPage() {
             <button
               onClick={handleSave}
               disabled={isLoading}
-              className="px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center space-x-2"
+              className="px-6 py-2 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg transition-colors flex items-center gap-2"
             >
               {isLoading ? (
                 <>
                   <LoadingSpinner size="sm" />
-                  <span>Saving...</span>
+                  <span>{t('settings.saving')}</span>
                 </>
               ) : (
-                <span>Save Changes</span>
+                <span>{t('settings.save')}</span>
               )}
             </button>
           </div>

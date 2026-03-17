@@ -52,10 +52,9 @@
   COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
   # اگر فایل/عکس عمومی داری:
   COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-  # کپی فایل‌های config برای PostCSS و Tailwind (در standalone mode لازم است)
-  COPY --from=builder --chown=nextjs:nodejs /app/postcss.config.js ./postcss.config.js
-  COPY --from=builder --chown=nextjs:nodejs /app/tailwind.config.js ./tailwind.config.js
-  COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./next.config.js
+  # کپی فایل‌های config لازم برای پردازش CSS و Next runtime
+  COPY --from=builder --chown=nextjs:nodejs /app/postcss.config.mjs ./postcss.config.mjs
+  COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./next.config.mjs
   
   USER nextjs
   EXPOSE 3000

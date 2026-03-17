@@ -109,7 +109,7 @@ export function VoiceStreaming({ className, onTranscript, onResponse }: VoiceStr
   }, []);
 
   // Monitor audio levels
-  const monitorAudioLevel = useCallback(() => {
+  function monitorAudioLevel() {
     if (!analyserRef.current || !isStreaming) return;
 
     const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
@@ -120,7 +120,7 @@ export function VoiceStreaming({ className, onTranscript, onResponse }: VoiceStr
     setAudioLevel(average / 255);
 
     animationFrameRef.current = requestAnimationFrame(monitorAudioLevel);
-  }, [isStreaming]);
+  }
 
   // Start streaming
   const startStreaming = useCallback(async () => {
@@ -314,7 +314,7 @@ export function VoiceStreaming({ className, onTranscript, onResponse }: VoiceStr
               )}
               {finalTranscript && (
                 <p className="text-white text-sm font-medium">
-                  "{finalTranscript}"
+                  &quot;{finalTranscript}&quot;
                 </p>
               )}
             </div>

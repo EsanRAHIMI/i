@@ -28,15 +28,18 @@ function AvatarMesh({ isActive, isSpeaking, audioUrl, avatarUrl }: { isActive: b
   // Load avatar texture if available
   useEffect(() => {
     if (!avatarUrl) {
-      console.log('No avatar URL provided');
-      setTexture((prevTexture) => {
-        if (prevTexture) {
-          prevTexture.dispose();
-        }
-        return null;
+      const cleanupFrame = requestAnimationFrame(() => {
+        console.log('No avatar URL provided');
+        setTexture((prevTexture) => {
+          if (prevTexture) {
+            prevTexture.dispose();
+          }
+          return null;
+        });
+        setTextureError(false);
       });
-      setTextureError(false);
-      return;
+
+      return () => cancelAnimationFrame(cleanupFrame);
     }
 
     // Build full URL for texture
@@ -70,7 +73,9 @@ function AvatarMesh({ isActive, isSpeaking, audioUrl, avatarUrl }: { isActive: b
     }
 
     console.log('Loading avatar texture from:', textureUrl);
-    setTextureError(false);
+    const resetFrame = requestAnimationFrame(() => {
+      setTextureError(false);
+    });
 
     let currentTexture: THREE.Texture | null = null;
     let isCancelled = false;
@@ -140,6 +145,7 @@ function AvatarMesh({ isActive, isSpeaking, audioUrl, avatarUrl }: { isActive: b
 
     return () => {
       isCancelled = true;
+      cancelAnimationFrame(resetFrame);
       if (currentTexture) {
         currentTexture.dispose();
       }
@@ -154,14 +160,25 @@ function AvatarMesh({ isActive, isSpeaking, audioUrl, avatarUrl }: { isActive: b
       if (material && texture.image) {
         material.map = texture;
         material.needsUpdate = true;
+
+        const mapImage = material.map?.image as
+          | { width?: number; height?: number }
+          | undefined;
+
+        const textureImage = texture.image as
+          | { width?: number; height?: number }
+          | undefined;
         
         // Circle geometry is already circular, no need to adjust
         // Just ensure the texture is properly applied
         console.log('Material updated with texture for circular display:', {
           hasMap: !!material.map,
-          mapWidth: material.map?.image?.width,
-          mapHeight: material.map?.image?.height,
-          aspectRatio: texture.image ? (texture.image.width / texture.image.height) : null,
+          mapWidth: mapImage?.width,
+          mapHeight: mapImage?.height,
+          aspectRatio:
+            textureImage?.width && textureImage?.height
+              ? textureImage.width / textureImage.height
+              : null,
         });
       }
     }

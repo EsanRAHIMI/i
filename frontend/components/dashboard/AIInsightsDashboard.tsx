@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
-import { DigitalAvatar } from '@/components/avatar/DigitalAvatar';
 import { formatDate, getRelativeTime } from '@/lib/utils';
 
 interface Insight {
@@ -193,37 +192,43 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
     setIsGenerating(false);
   };
 
+  const InsightBadge = () => (
+    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-primary-500/20 bg-primary-500/10">
+      <svg className="h-5 w-5 text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    </div>
+  );
+
   return (
     <div className={className}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8">
-            <DigitalAvatar isActive={isGenerating} isSpeaking={false} />
-          </div>
+      <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+        <div className="flex items-center gap-3">
+          <InsightBadge />
           <div>
-            <h2 className="text-xl font-semibold text-white">AI Insights</h2>
-            <p className="text-gray-400 text-sm">Personalized recommendations and patterns</p>
+            <h2 className="text-lg font-semibold tracking-tight text-white sm:text-xl">AI Insights</h2>
+            <p className="text-sm leading-6 text-gray-400">Personalized recommendations and patterns</p>
           </div>
         </div>
         
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
           <select
             value={selectedInsightType}
             onChange={(e) => setSelectedInsightType(e.target.value as any)}
-            className="bg-dark-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/80 transition-colors focus:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500/60 sm:min-w-40 sm:w-auto"
           >
-            <option value="all" className="bg-dark-800 text-gray-200">All Insights</option>
-            <option value="productivity" className="bg-dark-800 text-gray-200">Productivity</option>
-            <option value="schedule" className="bg-dark-800 text-gray-200">Schedule</option>
-            <option value="recommendation" className="bg-dark-800 text-gray-200">Recommendations</option>
-            <option value="pattern" className="bg-dark-800 text-gray-200">Patterns</option>
+            <option value="all" className="bg-dark-950 text-white/80">All Insights</option>
+            <option value="productivity" className="bg-dark-950 text-white/80">Productivity</option>
+            <option value="schedule" className="bg-dark-950 text-white/80">Schedule</option>
+            <option value="recommendation" className="bg-dark-950 text-white/80">Recommendations</option>
+            <option value="pattern" className="bg-dark-950 text-white/80">Patterns</option>
           </select>
           
           <button
             onClick={refreshInsights}
             disabled={isGenerating}
-            className="px-3 py-1 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm rounded transition-colors"
+            className="w-full rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50 sm:w-auto"
           >
             {isGenerating ? 'Generating...' : 'Refresh'}
           </button>
@@ -237,37 +242,37 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
             <div
               key={insight.id}
               className={`
-                p-4 rounded-lg border transition-all duration-200 hover:shadow-lg
+                rounded-2xl border p-4 transition-all duration-200 hover:shadow-lg backdrop-blur-xl sm:p-5
                 ${insight.actionable 
-                  ? 'border-primary-500 bg-primary-500/5 hover:border-primary-400' 
-                  : 'border-gray-600 bg-gray-600/5 hover:border-gray-500'
+                  ? 'border-primary-500/25 bg-primary-500/[0.08] hover:border-primary-500/40' 
+                  : 'border-white/10 bg-white/5 hover:border-white/20'
                 }
               `}
             >
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 p-2 bg-dark-700 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 rounded-xl border border-white/10 bg-white/10 p-2">
                   {getInsightIcon(insight.type)}
                 </div>
                 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-white mb-1">
+                  <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="mb-1 text-sm font-medium leading-6 text-white">
                         {insight.title}
                       </h3>
-                      <p className="text-sm text-gray-300 leading-relaxed">
+                      <p className="text-sm leading-6 text-gray-300">
                         {insight.description}
                       </p>
                     </div>
                     
-                    <div className="flex items-center space-x-2 ml-4">
+                    <div className="flex flex-wrap items-center gap-2 xl:ms-4 xl:justify-end">
                       {insight.actionable && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                        <span className="inline-flex items-center rounded-full border border-primary-500/20 bg-primary-500/15 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-primary-200">
                           Actionable
                         </span>
                       )}
                       
-                      <div className="text-right">
+                      <div className="rounded-xl border border-white/10 bg-black/10 px-3 py-2 text-left xl:text-right">
                         <p className={`text-xs font-medium ${getConfidenceColor(insight.confidence)}`}>
                           {Math.round(insight.confidence * 100)}%
                         </p>
@@ -276,14 +281,15 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center space-x-2">
+                  <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className={`
-                        inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                        ${insight.type === 'productivity' ? 'bg-green-100 text-green-800' :
-                          insight.type === 'schedule' ? 'bg-blue-100 text-blue-800' :
-                          insight.type === 'recommendation' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-purple-100 text-purple-800'
+                        inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium
+                        border border-white/10
+                        ${insight.type === 'productivity' ? 'bg-green-500/10 text-green-200 border-green-500/20' :
+                          insight.type === 'schedule' ? 'bg-blue-500/10 text-blue-200 border-blue-500/20' :
+                          insight.type === 'recommendation' ? 'bg-yellow-500/10 text-yellow-200 border-yellow-500/20' :
+                          'bg-purple-500/10 text-purple-200 border-purple-500/20'
                         }
                       `}>
                         {insight.type}
@@ -295,7 +301,7 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
                     </div>
                     
                     {insight.actionable && (
-                      <button className="text-xs text-primary-400 hover:text-primary-300 font-medium">
+                      <button className="text-xs font-medium text-primary-300 hover:text-primary-200">
                         Take Action →
                       </button>
                     )}
@@ -305,18 +311,20 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
             </div>
           ))
         ) : (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4">
-              <DigitalAvatar isActive={false} isSpeaking={false} />
+          <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.03] px-6 py-12 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl border border-primary-500/20 bg-primary-500/10">
+              <svg className="h-8 w-8 text-primary-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 17v-6a2 2 0 012-2h6m0 0-3-3m3 3-3 3M5 5h6a2 2 0 012 2v6" />
+              </svg>
             </div>
-            <h3 className="text-lg font-medium text-white mb-2">Learning Your Patterns</h3>
-            <p className="text-gray-400 max-w-md mx-auto">
+            <h3 className="mb-2 text-lg font-semibold tracking-tight text-white">Learning Your Patterns</h3>
+            <p className="mx-auto max-w-md text-sm leading-6 text-gray-400">
               The AI is analyzing your behavior to provide personalized insights. 
               Complete more tasks and events to unlock detailed recommendations.
             </p>
             <button
               onClick={refreshInsights}
-              className="mt-4 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm rounded transition-colors"
+              className="mt-4 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary-700"
             >
               Generate Insights
             </button>
@@ -327,9 +335,9 @@ export function AIInsightsDashboard({ className }: AIInsightsDashboardProps) {
       {/* Summary Stats */}
       {filteredInsights.length > 0 && (
         <div className="mt-6 pt-4 border-t border-gray-700">
-          <div className="grid grid-cols-4 gap-4 text-center">
+          <div className="grid grid-cols-2 gap-4 text-center lg:grid-cols-4">
             <div>
-              <p className="text-lg font-bold text-white">
+              <p className="text-lg font-semibold text-white">
                 {insights.filter(i => i.actionable).length}
               </p>
               <p className="text-xs text-gray-400">Actionable</p>

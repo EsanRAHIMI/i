@@ -78,6 +78,14 @@ class JWTManager:
     
     def _load_keys(self) -> None:
         """Load JWT keys from environment or files."""
+        auth_root = Path(__file__).resolve().parents[2]
+
+        def _resolve_path(path_str: str) -> Path:
+            p = Path(path_str)
+            if p.is_absolute():
+                return p
+            return auth_root / p
+
         # 1) Explicit env keys
         private_key = os.getenv("JWT_PRIVATE_KEY")
         public_key = os.getenv("JWT_PUBLIC_KEY")
@@ -90,9 +98,15 @@ class JWTManager:
         # 2) Explicit key files
         private_file = os.getenv("JWT_PRIVATE_KEY_FILE")
         public_file = os.getenv("JWT_PUBLIC_KEY_FILE")
-        if private_file and public_file and Path(private_file).exists() and Path(public_file).exists():
-            private_text = Path(private_file).read_text(encoding="utf-8")
-            public_text = Path(public_file).read_text(encoding="utf-8")
+        if private_file and public_file:
+            private_path = _resolve_path(private_file)
+            public_path = _resolve_path(public_file)
+        else:
+            private_path = None
+            public_path = None
+        if private_path and public_path and private_path.exists() and public_path.exists():
+            private_text = private_path.read_text(encoding="utf-8")
+            public_text = public_path.read_text(encoding="utf-8")
             _validate_keys(_normalize_pem_input(private_text), _normalize_pem_input(public_text))
             self.private_key = private_text
             self.public_key = public_text
@@ -100,7 +114,7 @@ class JWTManager:
 
         # 3) Keys dir with backend-compatible file names
         keys_dir = os.getenv("JWT_KEYS_DIR", "keys")
-        keys_dir_path = Path(keys_dir)
+        keys_dir_path = _resolve_path(keys_dir)
         private_path = keys_dir_path / "jwt_private_key.pem"
         public_path = keys_dir_path / "jwt_public_key.pem"
         if private_path.exists() and public_path.exists():
@@ -152,11 +166,13 @@ class JWTManager:
         ).decode()
         
         # Save to files if directory exists
-        keys_dir = Path("keys")
-        if keys_dir.exists():
-            with open(keys_dir / "private.pem", "w") as f:
+        auth_root = Path(__file__).resolve().parents[2]
+        keys_dir = os.getenv("JWT_KEYS_DIR", "keys")
+        keys_dir_path = (Path(keys_dir) if Path(keys_dir).is_absolute() else auth_root / Path(keys_dir))
+        if keys_dir_path.exists():
+            with open(keys_dir_path / "private.pem", "w") as f:
                 f.write(self.private_key)
-            with open(keys_dir / "public.pem", "w") as f:
+            with open(keys_dir_path / "public.pem", "w") as f:
                 f.write(self.public_key)
     
     def create_access_token(

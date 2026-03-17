@@ -1,5 +1,5 @@
 // i/app/frontend/hooks/useWebSocket.ts
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useAppStore } from '@/store/useAppStore';
 
 interface WebSocketMessage {
@@ -18,6 +18,7 @@ interface UseWebSocketOptions {
   reconnectAttempts?: number;
   reconnectInterval?: number;
   enabled?: boolean; // New: allow disabling WebSocket
+  autoConnect?: boolean; // New: allow manual connect (recommended for voice)
 }
 
 const isDevelopment = process.env.NODE_ENV === 'development';
@@ -26,13 +27,11 @@ const INITIAL_RECONNECT_INTERVAL = 1000; // 1 second
 const MAX_RECONNECT_INTERVAL = 30000; // 30 seconds
 const CIRCUIT_BREAKER_THRESHOLD = 3; // After 3 failures, wait longer
 
-function normalizeVoiceWsUrl(rawUrl: string | undefined): string | undefined {
+function normalizeVoiceWsUrl(rawUrl: string | undefined, sessionId: string): string | undefined {
   if (!rawUrl) return undefined;
 
   const trimmed = rawUrl.trim();
   if (!trimmed) return undefined;
-
-  const sessionId = `session_${Date.now()}`;
 
   // Replace common placeholders
   const placeholderNormalized = trimmed
@@ -68,10 +67,40 @@ function normalizeVoiceWsUrl(rawUrl: string | undefined): string | undefined {
   return placeholderNormalized;
 }
 
+function getBrowserAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('auth_token');
+}
+
+function withWsAuthQuery(url: string, token: string | null): string {
+  if (!token) return url;
+  try {
+    const u = new URL(url);
+    if (!u.searchParams.get('token')) {
+      u.searchParams.set('token', token);
+    }
+    return u.toString();
+  } catch {
+    // If URL parsing fails (shouldn't for ws://...), fallback to original
+    return url;
+  }
+}
+
+function createSessionId(): string {
+  return `session_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+}
+
 export function useWebSocket(options: UseWebSocketOptions = {}) {
+  const [sessionId] = useState(createSessionId);
+
   // ✅ تنظیم URL پیش‌فرض
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
-  const defaultWsUrl = normalizeVoiceWsUrl(wsUrl) || `ws://localhost:8000/api/v1/voice/stream/session_${Date.now()}`;
+  const defaultWsUrl = useMemo(() => {
+    return (
+      normalizeVoiceWsUrl(wsUrl, sessionId) ||
+      `ws://localhost:8000/api/v1/voice/stream/${sessionId}`
+    );
+  }, [sessionId, wsUrl]);
   
   const {
     url = defaultWsUrl,
@@ -82,7 +111,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     onClose,
     reconnectAttempts = MAX_RECONNECT_ATTEMPTS,
     reconnectInterval = INITIAL_RECONNECT_INTERVAL,
-    enabled = true
+    enabled = true,
+    autoConnect = true
   } = options;
 
   const { user } = useAppStore();
@@ -96,6 +126,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   const consecutiveFailuresRef = useRef(0);
   const shouldReconnectRef = useRef(true);
   const lastErrorTimeRef = useRef<number | null>(null);
+  const connectRef = useRef<() => void>(() => {});
 
   // Calculate exponential backoff delay
   const getReconnectDelay = useCallback((attempt: number): number => {
@@ -117,6 +148,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
   }, []);
 
+  const effectiveUrl = useMemo(() => {
+    const token = getBrowserAuthToken();
+    return withWsAuthQuery(url, token);
+  }, [url]);
+
   const connect = useCallback(() => {
     const isAuthRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/auth');
     if (isAuthRoute) {
@@ -124,7 +160,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     }
 
     // ✅ بررسی URL قبل از اتصال
-    if (!enabled || !url) {
+    if (!enabled || !effectiveUrl) {
       logError('WebSocket URL not configured or disabled');
       return;
     }
@@ -158,7 +194,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     try {
       setConnectionState('connecting');
       
-      wsRef.current = new WebSocket(url, protocols);
+      wsRef.current = new WebSocket(effectiveUrl, protocols);
 
       wsRef.current.onopen = (event) => {
         console.log('✅ WebSocket connected successfully!');
@@ -199,7 +235,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           
           reconnectTimeoutRef.current = setTimeout(() => {
             if (shouldReconnectRef.current && enabled) {
-              connect();
+              connectRef.current();
             }
           }, delay);
         } else if (!event.wasClean && reconnectCountRef.current >= reconnectAttempts) {
@@ -223,7 +259,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
       consecutiveFailuresRef.current++;
       lastErrorTimeRef.current = Date.now();
     }
-  }, [url, protocols, onOpen, onMessage, onClose, onError, reconnectAttempts, enabled, getReconnectDelay, logError]);
+  }, [effectiveUrl, protocols, onOpen, onMessage, onClose, onError, reconnectAttempts, enabled, getReconnectDelay, logError]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -290,26 +330,35 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
   // Auto-connect when user is authenticated and enabled
   useEffect(() => {
     // Don't try to connect if URL is not configured
-    if (!url && !wsUrl) {
+    if (!effectiveUrl && !wsUrl) {
       return;
     }
 
     const isAuthRoute = typeof window !== 'undefined' && window.location.pathname.startsWith('/auth');
     if (isAuthRoute) {
-      disconnect();
-      return;
+      const disconnectFrame = requestAnimationFrame(() => {
+        disconnect();
+      });
+      return () => cancelAnimationFrame(disconnectFrame);
     }
     
-    if (enabled && user && url) {
-      connect();
-    } else {
-      disconnect();
+    if (!autoConnect) {
+      return;
     }
 
-    return () => {
-      disconnect();
-    };
-  }, [user, enabled, url, wsUrl, connect, disconnect]);
+    const token = getBrowserAuthToken();
+    if (enabled && token && effectiveUrl) {
+      const connectFrame = requestAnimationFrame(() => {
+        connect();
+      });
+      return () => cancelAnimationFrame(connectFrame);
+    } else {
+      const disconnectFrame = requestAnimationFrame(() => {
+        disconnect();
+      });
+      return () => cancelAnimationFrame(disconnectFrame);
+    }
+  }, [autoConnect, enabled, effectiveUrl, wsUrl, connect, disconnect]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -322,12 +371,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     isConnected,
     connectionState,
     lastMessage,
-    connect,
-    disconnect,
     sendMessage,
-    sendVoiceData,
     sendVoiceStart,
+    sendVoiceData,
     sendVoiceEnd,
-    reconnectCount: reconnectCountRef.current
+    connect,
+    disconnect
   };
 }

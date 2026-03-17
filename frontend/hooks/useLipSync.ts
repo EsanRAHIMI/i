@@ -12,6 +12,11 @@ export function useLipSync(audioUrl?: string, isActive: boolean = false) {
     frequency: 0,
     isActive: false
   });
+  const inactiveLipSyncData: LipSyncData = {
+    amplitude: 0,
+    frequency: 0,
+    isActive: false,
+  };
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
@@ -20,7 +25,6 @@ export function useLipSync(audioUrl?: string, isActive: boolean = false) {
 
   useEffect(() => {
     if (!audioUrl || !isActive) {
-      setLipSyncData({ amplitude: 0, frequency: 0, isActive: false });
       return;
     }
 
@@ -138,8 +142,8 @@ export function useLipSync(audioUrl?: string, isActive: boolean = false) {
   };
 
   return {
-    lipSyncData,
-    mouthShape: getMouthShape(),
+    lipSyncData: audioUrl && isActive ? lipSyncData : inactiveLipSyncData,
+    mouthShape: audioUrl && isActive ? getMouthShape() : 'closed',
     isAnalyzing: isActive && !!audioUrl
   };
 }

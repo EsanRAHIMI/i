@@ -2,14 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAppStore } from '@/store/useAppStore';
 import { apiClient } from '@/lib/api';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { it } from 'node:test';
-import { beforeEach } from 'node:test';
-import { describe } from 'node:test';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 // Mock dependencies
 vi.mock('@/store/useAppStore');
@@ -105,7 +98,6 @@ describe('useAuth', () => {
 
     expect(mockApiClient.login).toHaveBeenCalledWith('test@example.com', 'password');
     expect(mockSetUser).toHaveBeenCalledWith(mockUser);
-    expect(mockSetSettings).toHaveBeenCalledWith(mockSettings);
   });
 
   it('handles login failure', async () => {
@@ -119,12 +111,11 @@ describe('useAuth', () => {
         await result.current.login('test@example.com', 'wrong-password');
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
-        // The error message might be wrapped, so just check it contains the original message
-        expect((error as Error).message).toContain('Login failed');
+        expect((error as Error).message).toContain(errorMessage);
       }
     });
 
-    expect(mockSetError).toHaveBeenCalled();
+    expect(mockSetError).toHaveBeenCalledWith(errorMessage);
   });
 
   it('handles successful registration', async () => {

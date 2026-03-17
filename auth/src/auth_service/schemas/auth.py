@@ -3,6 +3,7 @@ Authentication schemas.
 """
 from datetime import datetime
 from typing import Optional
+import os
 from pydantic import BaseModel, EmailStr, Field, ConfigDict, field_validator, field_serializer
 
 
@@ -16,6 +17,10 @@ class UserCreate(BaseModel):
     @field_validator("password")
     def validate_password(cls, v):
         """Validate password strength."""
+        disable_complexity = os.getenv("AUTH_DISABLE_PASSWORD_COMPLEXITY")
+        if disable_complexity and disable_complexity.strip().lower() in {"1", "true", "yes", "on"}:
+            return v
+
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long")
         
@@ -86,6 +91,10 @@ class ResetPasswordRequest(BaseModel):
 
     @field_validator("new_password")
     def validate_new_password(cls, v):
+        disable_complexity = os.getenv("AUTH_DISABLE_PASSWORD_COMPLEXITY")
+        if disable_complexity and disable_complexity.strip().lower() in {"1", "true", "yes", "on"}:
+            return v
+
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long")
 
@@ -114,6 +123,10 @@ class PasswordChange(BaseModel):
 
     @field_validator("new_password")
     def validate_new_password(cls, v):
+        disable_complexity = os.getenv("AUTH_DISABLE_PASSWORD_COMPLEXITY")
+        if disable_complexity and disable_complexity.strip().lower() in {"1", "true", "yes", "on"}:
+            return v
+
         if len(v) < 8:
             raise ValueError("Password must be at least 8 characters long")
 

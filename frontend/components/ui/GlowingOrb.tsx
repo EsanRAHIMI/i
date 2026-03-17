@@ -18,18 +18,16 @@ export function GlowingOrb({ size = 'md', isActive = true, className }: GlowingO
   return (
     <div
       className={cn(
-        'rounded-full bg-gradient-to-br from-purple-400 via-primary-500 to-gray-800',
-        'shadow-lg',
+        'rounded-full',
+        // Avoid inline styles; use Tailwind classes so gradients behave consistently across viewports.
+        'bg-[radial-gradient(circle_at_30%_30%,#a78bfa,#6366f1_60%,#111827_100%)]',
+        isActive
+          ? 'shadow-[inset_0_0_40px_rgba(99,102,241,0.60),0_0_60px_rgba(99,102,241,0.40)]'
+          : 'shadow-[inset_0_0_20px_rgba(99,102,241,0.30),0_0_30px_rgba(99,102,241,0.20)]',
         sizeClasses[size],
         isActive && 'animate-pulse-glow',
         className
       )}
-      style={{
-        background: 'radial-gradient(circle at 30% 30%, #a78bfa, #6366f1 60%, #111827 100%)',
-        boxShadow: isActive 
-          ? '0 0 40px rgba(99, 102, 241, 0.6) inset, 0 0 60px rgba(99, 102, 241, 0.4)'
-          : '0 0 20px rgba(99, 102, 241, 0.3) inset, 0 0 30px rgba(99, 102, 241, 0.2)',
-      }}
     />
   );
 }

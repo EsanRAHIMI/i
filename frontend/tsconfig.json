@@ -15,12 +15,15 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
       {
         "name": "next"
       }
+    ],
+    "types": [
+      "vitest/globals"
     ],
     "baseUrl": ".",
     "paths": {
@@ -55,6 +58,7 @@
   "exclude": [
     "node_modules",
     "vitest.config.ts",
-    "test-setup.ts"
+    "test-setup.ts",
+    "__tests__"
   ]
 }

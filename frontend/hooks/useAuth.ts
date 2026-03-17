@@ -89,8 +89,11 @@ export function useAuth() {
         // Only clear token if it's definitely invalid
         // Don't clear on general errors
       } finally {
+        // IMPORTANT: `isLoading` is global (zustand) state.
+        // In React StrictMode dev, effects can mount/unmount quickly; if we gate this on `isMounted`,
+        // the app can get stuck in loading=true forever, disabling auth screens.
+        setLoading(false);
         if (isMounted) {
-          setLoading(false);
           setIsInitialized(true);
         }
       }
