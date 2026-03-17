@@ -8,6 +8,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { VoiceActivityIndicator } from './VoiceActivityIndicator';
 import { logger } from '@/lib/logger';
+import { Surface } from '@/components/ui/Surface';
 
 /**
  * FloatingGlassDock v3 – "Genie 3D" Edition (Hardened)
@@ -371,13 +372,14 @@ export default function FloatingGlassDock({
         aria-label="Voice control dock"
         className={`pointer-events-auto fixed bottom-[max(env(safe-area-inset-bottom),0.75rem)] left-1/2 z-50 w-[min(34rem,calc(100vw-1rem))] -translate-x-1/2 sm:bottom-[max(env(safe-area-inset-bottom),1rem)] sm:w-[min(36rem,calc(100vw-2rem))] ${className}`}
       >
-        <div
-          className="relative flex w-full items-center justify-between rounded-[1.75rem] border border-white/15 bg-white/10 px-3 py-2 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:border-white/10 dark:bg-black/30 sm:px-4 xl:py-1 xl:pb-2"
+        <Surface
+          material="thick"
+          className="relative flex w-full items-center justify-between px-3 py-2 sm:px-4"
           role="toolbar"
           aria-roledescription="dock"
         >
           {/* subtle top shine on container */}
-          <span className="pointer-events-none absolute -top-px left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent"/>
+          <span className="pointer-events-none absolute -top-px left-6 right-6 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent" />
           
           {/* Left action */}
           <GlassButton ariaLabel={leftLabel} onClick={onLeftAction} tooltip={leftLabel}>
@@ -397,12 +399,12 @@ export default function FloatingGlassDock({
                   : "Open voice agent"
             }
             className={`
-              relative grid h-[3.75rem] w-[3.75rem] place-items-center rounded-full border shadow-2xl transition-all duration-200 sm:h-16 sm:w-16 xl:h-20 xl:w-20 xl:-translate-y-3
+              relative grid h-[3.5rem] w-[3.5rem] place-items-center rounded-full border transition-all duration-200 sm:h-16 sm:w-16 xl:h-20 xl:w-20 xl:-translate-y-3
               ${isStreaming 
-                ? 'border-red-400/50 bg-red-500/30 hover:bg-red-500/40' 
+                ? 'border-red-400/50 bg-red-500/30 shadow-[0_18px_60px_rgba(239,68,68,0.35)] hover:bg-red-500/40' 
                 : open 
-                  ? 'border-white/20 bg-white/15 hover:bg-white/25 dark:border-white/10 dark:bg-white/10'
-                  : 'border-white/20 bg-white/15 hover:bg-white/25 dark:border-white/10 dark:bg-white/10'
+                  ? 'border-(--glass-border) bg-[color:var(--glass-thick)] shadow-[0_18px_60px_rgba(0,0,0,0.45)] hover:bg-[color:var(--glass-ultraThick)]'
+                  : 'border-(--glass-border) bg-[color:var(--glass-thick)] shadow-[0_18px_60px_rgba(0,0,0,0.45)] hover:bg-[color:var(--glass-ultraThick)]'
               }
               ${open && !isConnected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
@@ -459,7 +461,7 @@ export default function FloatingGlassDock({
           <GlassButton ariaLabel={rightLabel} onClick={onRightAction} tooltip={rightLabel}>
             <RightIcon className="h-5 w-5" aria-hidden="true" />
           </GlassButton>
-        </div>
+        </Surface>
       </div>
 
       {/* Genie Agent Popup (3D) */}
@@ -497,7 +499,16 @@ function GlassButton({
       aria-label={ariaLabel}
       title={tooltip}
       onClick={onClick}
-      className="grid h-10 w-10 place-items-center rounded-xl border border-white/20 bg-white/10 text-sm shadow-lg transition-all hover:translate-y-[-1px] hover:bg-white/20 active:translate-y-0 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10 sm:h-11 sm:w-11 xl:h-12 xl:w-12"
+      className={`
+        grid h-(--tap-target) w-(--tap-target) place-items-center
+        rounded-control border border-(--glass-border)
+        bg-[color:var(--glass-thin)] text-sm text-white/85
+        shadow-(--glass-shadow-soft)
+        transition-colors
+        hover:bg-[color:var(--glass-regular)]
+        active:bg-[color:var(--glass-thick)]
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50
+      `}
     >
       {children}
     </button>

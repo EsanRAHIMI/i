@@ -8,6 +8,8 @@ import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
 import { GlowingOrb } from '@/components/ui/GlowingOrb';
 import { useT } from '@/i18n/useT';
+import { Surface } from '@/components/ui/Surface';
+import { Button } from '@/components/ui/Button';
 
 // Simple icon components
 const HomeIcon = ({ className }: { className?: string }) => (
@@ -81,17 +83,26 @@ export function Navigation() {
     <>
       {/* Desktop Sidebar */}
       <div className="hidden xl:flex xl:fixed xl:inset-y-0 xl:w-72 xl:flex-col">
-        <div className="flex flex-col grow bg-dark-900 border-r border-gray-700 pt-5 pb-4 overflow-y-auto">
-          <div className="flex items-center shrink-0 px-4">
+        <Surface
+          as="aside"
+          material="thick"
+          className="flex h-full flex-col overflow-y-auto rounded-none border-0 border-e border-(--glass-border) bg-(--glass-ultraThick) px-3 py-4 shadow-none"
+          role="navigation"
+          aria-label="Primary"
+        >
+          <div className="flex items-center gap-3 px-2 pt-1">
             <GlowingOrb 
               size="sm" 
               isActive={voiceSession?.status === 'listening' || voiceSession?.status === 'processing'} 
             />
-            <span className="ms-3 text-xl font-bold text-white">i Assistant</span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold tracking-tight text-white">i Assistant</p>
+              <p className="text-xs text-white/45">Personal OS dashboard</p>
+            </div>
           </div>
           
-          <div className="mt-8 grow flex flex-col">
-            <nav className="flex-1 px-2 space-y-1">
+          <div className="mt-5 flex grow flex-col">
+            <nav className="flex-1 space-y-1 px-1">
               {navigation.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -99,16 +110,17 @@ export function Navigation() {
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      'group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors',
+                      'group flex h-(--tap-target) items-center rounded-control px-3 text-sm font-medium transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50',
                       isActive
-                        ? 'bg-primary-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                        ? 'bg-linear-to-b from-primary-500/20 to-primary-700/10 text-white border border-primary-500/20'
+                        : 'text-white/70 hover:bg-white/8 hover:text-white'
                     )}
                   >
                     <item.icon
                       className={cn(
                         'me-3 shrink-0 h-5 w-5',
-                        isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
+                        isActive ? 'text-primary-200' : 'text-white/40 group-hover:text-white/60'
                       )}
                     />
                     {item.name}
@@ -118,66 +130,80 @@ export function Navigation() {
             </nav>
             
             {/* User Profile Section */}
-            <div className="shrink-0 px-4 py-4 border-t border-gray-700">
-              <div className="flex items-center">
+            <div className="shrink-0 px-2 pt-3">
+              <div className="rounded-control border border-(--glass-border) bg-(--glass-thin) p-3 backdrop-blur-2xl">
+                <div className="flex items-center">
                 <div className="shrink-0">
-                  <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center overflow-hidden">
+                  <div className="h-9 w-9 rounded-full bg-primary-600/25 border border-primary-500/20 flex items-center justify-center overflow-hidden">
                     {profileAvatarUrl ? (
                       <img
                         src={profileAvatarUrl}
                         alt={user?.email || 'Profile'}
-                        className="h-8 w-8 object-cover"
+                        className="h-9 w-9 object-cover"
                         onError={() => setAvatarError(true)}
                       />
                     ) : (
-                      <span className="text-sm font-medium text-white">
+                      <span className="text-sm font-semibold text-white">
                         {user?.email?.charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="ms-3 flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
+                  <p className="text-sm font-semibold text-white truncate">
                     {user?.email}
                   </p>
+                  <p className="mt-0.5 text-xs text-white/45">Signed in</p>
                 </div>
-                <button
+                <Button
                   onClick={handleLogout}
-                  className="ms-3 shrink-0 p-1 text-gray-400 hover:text-white transition-colors"
+                  variant="ghost"
+                  size="sm"
+                  className="ms-2 h-10 w-10 p-0"
                   title={t('nav.logout')}
+                  aria-label={t('nav.logout')}
                 >
                   <LogoutIcon className="h-5 w-5" />
-                </button>
+                </Button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </Surface>
       </div>
 
       {/* Mobile Navigation */}
       <div className="xl:hidden">
-        <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-700 bg-dark-900/95 px-4 py-3 backdrop-blur-xl">
+        <Surface
+          as="header"
+          material="thick"
+          className="sticky top-0 z-40 flex items-center justify-between rounded-none border-0 border-b border-(--glass-border) bg-(--glass-ultraThick) px-4 py-3 shadow-none"
+        >
           <div className="flex items-center">
             <GlowingOrb 
               size="sm" 
               isActive={voiceSession?.status === 'listening' || voiceSession?.status === 'processing'} 
             />
-            <span className="ms-3 text-lg font-bold text-white">i Assistant</span>
+            <span className="ms-3 text-sm font-semibold tracking-tight text-white">i Assistant</span>
           </div>
           
-          <button
+          <Button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="text-gray-400 hover:text-white"
+            variant="ghost"
+            size="sm"
+            className="h-10 w-10 p-0"
+            aria-label="Toggle navigation"
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
-          </button>
-        </div>
+          </Button>
+        </Surface>
 
         {isMobileMenuOpen && (
-          <div className="border-b border-gray-700 bg-dark-900/95 backdrop-blur-xl">
-            <nav className="px-2 pt-2 pb-3 space-y-1">
+          <div className="px-3 pt-3">
+            <Surface material="regular" className="p-2">
+            <nav className="space-y-1">
               {navigation.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -186,16 +212,17 @@ export function Navigation() {
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={cn(
-                      'group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors',
+                      'group flex h-(--tap-target) items-center rounded-control px-3 text-base font-medium transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50',
                       isActive
-                        ? 'bg-primary-600 text-white'
-                        : 'text-gray-300 hover:bg-gray-700 hover:text-white'
+                        ? 'bg-linear-to-b from-primary-500/20 to-primary-700/10 text-white border border-primary-500/20'
+                        : 'text-white/75 hover:bg-white/8 hover:text-white'
                     )}
                   >
                     <item.icon
                       className={cn(
                         'me-3 shrink-0 h-5 w-5',
-                        isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-300'
+                        isActive ? 'text-primary-200' : 'text-white/40 group-hover:text-white/60'
                       )}
                     />
                     {item.name}
@@ -203,14 +230,17 @@ export function Navigation() {
                 );
               })}
               
-              <button
+              <Button
                 onClick={handleLogout}
-                className="w-full group flex items-center px-2 py-2 text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white rounded-md transition-colors"
+                variant="secondary"
+                size="md"
+                className="w-full justify-start px-3"
               >
                 <LogoutIcon className="me-3 shrink-0 h-5 w-5 text-gray-400 group-hover:text-gray-300" />
                 {t('nav.logout')}
-              </button>
+              </Button>
             </nav>
+            </Surface>
           </div>
         )}
       </div>

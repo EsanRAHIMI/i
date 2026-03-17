@@ -1,7 +1,7 @@
 'use client';
 
 import type React from 'react';
-import { GlassCard } from '@/components/ui/GlassCard';
+import { Surface } from '@/components/ui/Surface';
 import { cn } from '@/lib/utils';
 
 type Tone = 'primary' | 'blue' | 'green' | 'amber';
@@ -45,7 +45,7 @@ export function DashboardStatCard({
   const styles = toneStyles[tone];
 
   return (
-    <GlassCard className={cn('relative overflow-hidden p-5 sm:p-6', className)}>
+    <Surface material="regular" className={cn('relative overflow-hidden p-5 sm:p-6', className)}>
       <div className="absolute inset-0 opacity-80 mask-[radial-gradient(70%_60%_at_20%_0%,black,transparent)]">
         <div className="h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(99,102,241,0.18),transparent_55%)]" />
       </div>
@@ -70,7 +70,7 @@ export function DashboardStatCard({
           <p className="mt-2 text-sm leading-6 text-white/60">{subtitle}</p>
         </div>
       </div>
-    </GlassCard>
+    </Surface>
   );
 }
 

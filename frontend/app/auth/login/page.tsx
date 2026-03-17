@@ -9,6 +9,8 @@ import { GlowingOrb } from '@/components/ui/GlowingOrb';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { isValidEmail } from '@/lib/utils';
 import { useT } from '@/i18n/useT';
+import { Button } from '@/components/ui/Button';
+import { TextField } from '@/components/ui/TextField';
 
 export default function LoginPage() {
   const t = useT();
@@ -116,39 +118,32 @@ export default function LoginPage() {
           )}
 
           <div className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-                {t('auth.email')}
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                ref={emailRef}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-dark-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-white placeholder-gray-400"
-                placeholder="Enter your email"
-                disabled={isLoading}
-              />
-            </div>
+            <TextField
+              id="email"
+              name="email"
+              type="email"
+              ref={emailRef}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              label={t('auth.email')}
+              placeholder="Enter your email"
+              disabled={isLoading}
+              autoComplete="email"
+              inputMode="email"
+            />
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-                {t('auth.password')}
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                ref={passwordRef}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-dark-800 border border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-white placeholder-gray-400"
-                placeholder="Enter your password"
-                disabled={isLoading}
-              />
-            </div>
+            <TextField
+              id="password"
+              name="password"
+              type="password"
+              ref={passwordRef}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              label={t('auth.password')}
+              placeholder="Enter your password"
+              disabled={isLoading}
+              autoComplete="current-password"
+            />
           </div>
 
           <div className="flex items-center justify-end">
@@ -157,11 +152,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
-          >
+          <Button type="submit" disabled={isLoading} variant="primary" size="lg" className="w-full">
             {isLoading ? (
               <>
                 <LoadingSpinner size="sm" />
@@ -170,13 +161,22 @@ export default function LoginPage() {
             ) : (
               <span>{t('auth.signIn')}</span>
             )}
-          </button>
+          </Button>
 
           <div className="text-center">
             <p className="text-gray-400">
               Don&apos;t have an account?{' '}
               <Link href="/auth/register" className="text-primary-400 hover:text-primary-300 font-medium">
                 Sign up
+              </Link>
+            </p>
+            <p className="mt-4 text-xs text-white/45">
+              <Link href="/privacy" className="hover:text-white/70 transition-colors">
+                Privacy Policy
+              </Link>{' '}
+              <span className="text-white/20">•</span>{' '}
+              <Link href="/terms" className="hover:text-white/70 transition-colors">
+                Terms of Service
               </Link>
             </p>
           </div>

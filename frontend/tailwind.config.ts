@@ -10,6 +10,10 @@ export default {
   ],
   theme: {
     extend: {
+      borderRadius: {
+        control: 'var(--radius-control)',
+        surface: 'var(--radius-surface)',
+      },
       colors: {
         dark: {
           50: '#f8fafc',
