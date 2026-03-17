@@ -185,7 +185,7 @@ export function TaskTimeline({ className, showDate, maxItems = 10 }: TaskTimelin
             <div key={item.id} className="relative">
               {/* Timeline line */}
               {index < timelineItems.length - 1 && (
-                <div className="absolute start-5 top-12 h-8 w-px bg-white/10" />
+                <div className="absolute inset-s-5 top-12 h-8 w-px bg-white/10" />
               )}
               
               {/* Timeline item */}
@@ -257,14 +257,16 @@ export function TaskTimeline({ className, showDate, maxItems = 10 }: TaskTimelin
             </div>
           ))
         ) : (
-          <div className="py-10 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-gray-700/70">
+          <div className="rounded-3xl border border-dashed border-white/10 bg-white/3 px-6 py-12 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl border border-white/10 bg-white/5">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <p className="text-sm font-medium text-gray-300">No items for this day</p>
-            <p className="mt-1 text-sm text-gray-500">Your schedule is clear</p>
+            <p className="text-sm font-medium text-gray-200">No items scheduled</p>
+            <p className="mt-1 text-sm text-gray-400">
+              Your day is clear. Use the voice agent or create a task to get started.
+            </p>
           </div>
         )}
       </div>
