@@ -11,8 +11,10 @@
   
   # اگر env عمومی لازم داری، همین‌جا پاس می‌گیرن (Dokploy -> Build Args)
   ARG NEXT_PUBLIC_API_URL
+  ARG NEXT_PUBLIC_AUTH_API_URL
   ARG NEXT_PUBLIC_WS_URL
   ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+  ENV NEXT_PUBLIC_AUTH_API_URL=${NEXT_PUBLIC_AUTH_API_URL}
   ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
   
   # فقط فایل‌های نصب را کپی کن تا cache بهتر عمل کند
@@ -39,8 +41,10 @@
       NEXT_TELEMETRY_DISABLED=1
   # متغیرهای محیطی باید در runtime هم موجود باشند (برای runtime config)
   ARG NEXT_PUBLIC_API_URL
+  ARG NEXT_PUBLIC_AUTH_API_URL
   ARG NEXT_PUBLIC_WS_URL
   ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+  ENV NEXT_PUBLIC_AUTH_API_URL=${NEXT_PUBLIC_AUTH_API_URL}
   ENV NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
   RUN apk add --no-cache libc6-compat curl
   
@@ -53,8 +57,8 @@
   # اگر فایل/عکس عمومی داری:
   COPY --from=builder --chown=nextjs:nodejs /app/public ./public
   # کپی فایل‌های config لازم برای پردازش CSS و Next runtime
-  COPY --from=builder --chown=nextjs:nodejs /app/postcss.config.mjs ./postcss.config.mjs
-  COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./next.config.mjs
+  COPY --from=builder --chown=nextjs:nodejs /app/postcss.config.js ./postcss.config.js
+  COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./next.config.js
   
   USER nextjs
   EXPOSE 3000
