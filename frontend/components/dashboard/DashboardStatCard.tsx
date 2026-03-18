@@ -45,29 +45,34 @@ export function DashboardStatCard({
   const styles = toneStyles[tone];
 
   return (
-    <Surface material="regular" className={cn('relative overflow-hidden p-5 sm:p-6', className)}>
+    <Surface material="regular" className={cn('relative overflow-hidden p-4 sm:p-6', className)}>
       <div className="absolute inset-0 opacity-80 mask-[radial-gradient(70%_60%_at_20%_0%,black,transparent)]">
         <div className="h-full w-full bg-[radial-gradient(circle_at_20%_0%,rgba(99,102,241,0.18),transparent_55%)]" />
       </div>
 
-      <div className="relative flex h-full flex-col gap-6">
-        <div className="flex items-center justify-between gap-4">
+      <div className="relative flex h-full flex-col gap-4 sm:gap-6">
+        <div className="flex items-center justify-between gap-3">
           <span
             className={cn(
-              'inline-flex w-fit items-center rounded-full border px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em]',
+              'inline-flex w-fit items-center rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.22em] sm:px-3 sm:text-[11px]',
               styles.chip
             )}
           >
             {title}
           </span>
-          <div className={cn('inline-flex items-center justify-center rounded-2xl border p-3', styles.iconWrap)}>
+          <div
+            className={cn(
+              'inline-flex items-center justify-center rounded-2xl border p-2.5 sm:p-3',
+              styles.iconWrap
+            )}
+          >
             {icon}
           </div>
         </div>
 
         <div className="mt-auto">
-          <div className="text-4xl font-semibold tracking-tight text-white">{value}</div>
-          <p className="mt-2 text-sm leading-6 text-white/60">{subtitle}</p>
+          <div className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">{value}</div>
+          <p className="mt-2 text-xs leading-5 text-white/60 sm:text-sm sm:leading-6">{subtitle}</p>
         </div>
       </div>
     </Surface>

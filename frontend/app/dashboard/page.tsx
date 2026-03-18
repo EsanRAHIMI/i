@@ -155,7 +155,7 @@ export default function DashboardPage() {
         </GlassCard>
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 xl:gap-6">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 xl:gap-6">
           <DashboardStatCard
             title="Today"
             value={todayTasks.length}
@@ -193,7 +193,7 @@ export default function DashboardPage() {
             value={pendingTasks.length}
             subtitle="Items waiting for action"
             tone="amber"
-            className="md:col-span-2 xl:col-span-1"
+            className="col-span-2 md:col-span-2 xl:col-span-1"
             icon={
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path

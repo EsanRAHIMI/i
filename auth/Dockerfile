@@ -18,7 +18,7 @@ RUN groupadd -r authuser && useradd -r -g authuser authuser
 WORKDIR /app
 
 # Copy auth service code
-COPY auth/ ./auth/
+COPY . ./auth/
 
 # Install auth service dependencies
 RUN pip install --no-cache-dir --no-build-isolation -e ./auth
