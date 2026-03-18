@@ -24,7 +24,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    uuid_type = sa.String(length=36) if PGUUID is None else PGUUID(as_uuid=True)
+    uuid_type = sa.String(length=36)
     op.create_table(
         "user_avatars",
         sa.Column("id", uuid_type, primary_key=True, nullable=False),
