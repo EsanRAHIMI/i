@@ -1,133 +1,134 @@
-# i Assistant - Intelligent AI Life Assistant
+# 🌟 i Assistant - Intelligent AI Life Assistant
 
 A next-generation **Agentic AI Life Assistant** designed to act as your **conscious digital twin**, continuously learning, guiding, and optimizing real-world actions in real time.
 
-## 🚀 Quick Start
+---
 
-Get the entire system running in 5 minutes:
+## ⚡ Quick Start (macOS Recommended)
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd i-assistant
-
-# Run the setup script
-./scripts/setup.sh
-
-# Access the application
-open http://localhost:3000
-```
-
-## 📁 Project Structure
-
-```
-i-assistant/
-├── backend/           # FastAPI backend services
-├── frontend/          # Next.js frontend application  
-├── ai/               # AI services and models
-├── auth/             # Authentication services
-└── .env.example      # Environment configuration template
-```
-
-## 🏗️ Architecture
-
-- **Frontend**: Next.js 14 with TypeScript, Tailwind CSS, and 3D avatar
-- **Backend**: FastAPI with SQLAlchemy, Celery, and Redis
-- **AI Services**: Whisper STT, Coqui/ElevenLabs TTS, LangChain orchestration
-- **Database**: PostgreSQL with federated learning support
-- **Storage**: MinIO for object storage
-- **Proxy**: Nginx with SSL termination and load balancing
-
-## 🔧 Services
-
-| Service | Port | Description |
-|---------|------|-------------|
-| Frontend | 3000 | Next.js web application |
-| Backend | 8000 | FastAPI REST API |
-| PostgreSQL | 5432 | Primary database |
-| Redis | 6379 | Cache and message broker |
-| MinIO | 9000/9001 | Object storage |
-| Nginx | 80/443 | Reverse proxy |
-
-## 🛠️ Development
-
-### Running Services with Docker
+Get the entire local development environment running in just seconds!
 
 ```bash
-# Start infrastructure services (PostgreSQL, Redis, MinIO, Frontend, Nginx)
-docker-compose up -d
+# 1. Clone the repository
+git clone https://github.com/EsanRAHIMI/i.git
+cd app
 
-# View logs
-docker-compose logs -f
+# 2. Configure Environment
+# Make sure your .env and frontend/.env.local are properly configured with your keys.
 
-# Stop services  
-docker-compose down
-
-# Rebuild images
-docker-compose build --no-cache
+# 3. Start everything automatically!
+./START.sh
 ```
 
-### Running Backend Locally (Recommended for Development)
+**`START.sh`** is an automated script that:
+1. Boots up the infrastructure databases (PostgreSQL, Redis, MinIO) via Docker.
+2. Opens three new native Terminal tabs automatically for `Auth`, `Backend`, and `Frontend`.
+3. Sets up Python virtual environments and installs all dependencies on the fly.
 
-See the “Run locally (3 terminals)” section at the end of this README.
+---
 
-## 📋 Requirements
+## 🏗️ Architecture & Development Strategy
 
-- Docker & Docker Compose
-- Node.js 18+ (for local development)
-- Python 3.11+ (for local development)
+This project uses a **hybrid Local + Docker** development strategy for maximum speed and hot-reloading:
 
-## 🔐 Environment Configuration
+- 🧱 **Infrastructure (Docker)**: `PostgreSQL`, `Redis`, and `MinIO` run effortlessly in isolated containers.
+- ⚙️ **Application Layers (Local)**: `Frontend`, `Backend`, and `Auth` run completely locally on your host machine to allow lightning-fast development, hot-reloading (Next.js/Uvicorn), and easy debugging.
 
-Copy `.env.example` to `.env` and configure:
+### 📁 Project Structure
 
-- Database credentials
-- API keys (OpenAI, ElevenLabs, Google, WhatsApp)
-- JWT secrets
-- Service ports
+```text
+app/
+├── backend/           # Main FastAPI backend (Business logic, AI routing)
+├── auth/              # FastAPI Auth Microservice (JWT, OAuth)
+├── frontend/          # Next.js 14 web app with Tailwind & 3D Avatar
+├── database/          # Centralized Database Migration Service (Alembic)
+├── docs/              # System Documentation & Reports
+├── docker-compose.yml # Infrastructure definition (DBs, Cache, Storage)
+└── START.sh           # Master automated startup script
+```
 
-## 📚 Documentation
+---
 
-- [API Documentation](docs/api.md)
-- [Deployment Guide](docs/deployment.md)
-- [Development Setup](docs/development.md)
-- [Privacy & Security](docs/privacy.md)
+## 💻 Tech Stack
 
-## 🤝 Contributing
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend & Auth**: FastAPI, SQLAlchemy, Pydantic 
+- **AI Integration**: LangChain, Whisper (STT), Coqui/ElevenLabs (TTS)
+- **Data & Storage**: PostgreSQL (Relational), Redis (Cache/Tasks), MinIO (S3 Object Storage)
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Run tests: `npm test`
-5. Submit a pull request
+---
 
-## 📄 License
+## 🔧 Service Endpoints
 
-MIT License - see [LICENSE](LICENSE) file for details.
+| Service | Port | Technology | Purpose |
+|---------|------|------------|---------|
+| **Frontend** | `3000` | Next.js | User Interface & Dashboard |
+| **Backend API** | `8000` | FastAPI | Core business logic and AI integration |
+| **Auth API** | `8001` | FastAPI | User Authentication and Security |
+| **PostgreSQL**| `5432` | Postgres | Primary Relational Database |
+| **Redis** | `6379` | Redis | Caching and task broker |
+| **MinIO** | `9000` | S3-based | Object storage (Avatars, Voices, etc) |
 
-## Run locally (3 terminals)
+---
 
-Terminal 1: Auth service
+## 🗄️ Database Migrations
 
+Database tables and schemas for both `backend` and `auth` are centrally managed via the `database` service. 
+
+To apply the latest migrations:
+```bash
+# Build the migration container and run it connected to your local docker Postgres
+docker build -f database/Dockerfile -t database-migration .
+docker run --rm --network app_app-network -e POSTGRES_DB=i_DB -e POSTGRES_USER=esan -e POSTGRES_PASSWORD=Admin_1234_1234 -e POSTGRES_HOST=i-postgres database-migration
+```
+
+---
+
+## 🖥️ Manual Startup (Alternative to START.sh)
+
+If you're not on macOS or prefer to run services manually, run `docker-compose up -d` to start the databases, and then follow these steps in 3 separate terminal windows:
+
+**Terminal 1: Auth Service**
 ```bash
 cd auth
-./.venv-auth/bin/python -m uvicorn auth_service.main:app --host 0.0.0.0 --port 8001
+python3 -m venv .venv-auth
+source .venv-auth/bin/activate
+pip install -r requirements.txt
+export PYTHONPATH=src:$PYTHONPATH
+python -m uvicorn auth_service.main:app --host 0.0.0.0 --port 8001 --reload
 ```
 
-Terminal 2: Backend
-
+**Terminal 2: Backend Service**
 ```bash
 cd backend
-./.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export PYTHONPATH=.:$PYTHONPATH
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Terminal 3: Frontend
-
+**Terminal 3: Frontend Web App**
 ```bash
 cd frontend
+npm install
 npm run dev
 ```
-------------------------
-git add .
-git commit -m "update s3 settings"
-git push
+
+---
+
+## 📚 Documentation
+Please check out the `docs/` folder for more detailed instructions and past reports:
+- [Backend Local Setup Guide](docs/BACKEND_LOCAL_SETUP.md)
+- [System Check / Technical Status](docs/TEST_REPORT_FA.md)
+
+---
+
+## 🤝 Contributing
+1. Fork the repository
+2. Create a feature branch
+3. Implement and test your changes
+4. Submit a Pull Request
+
+## 📄 License
+MIT License - see [LICENSE](LICENSE) file for details.
