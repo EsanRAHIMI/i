@@ -156,18 +156,19 @@ Failed to load resource: the server responded with a status of 404 (Not Found)
 
 ---
 
-## 📊 وضعیت سرویس‌های Docker
+## 📊 وضعیت سرویس‌های سیستم (معماری جدید)
 
-### سرویس‌های سالم (Healthy)
-- ✅ `i-postgres`: Healthy
-- ✅ `i-redis`: Healthy
-- ✅ `i-minio`: Healthy
+### سرویس‌های زیربنایی (Docker)
+- ✅ `i-postgres`: در حال اجرا
+- ✅ `i-redis`: در حال اجرا
+- ✅ `i-minio`: در حال اجرا
 
-### سرویس‌های ناسالم (Unhealthy)
-- ⚠️ `i-nginx`: Unhealthy
-- ⚠️ `i-frontend`: Unhealthy
+### سرویس‌های اپلیکیشن (Local)
+- ✅ `Backend (FastAPI)`: در حال اجرا روی پورت 8000
+- ✅ `Auth Service`: در حال اجرا روی پورت 8001
+- ✅ `Frontend (Next.js)`: در حال اجرا روی پورت 3000
 
-**نکته:** با وجود unhealthy بودن، سرویس‌ها به نظر کار می‌کنند. مشکل احتمالاً در health check configuration است.
+**نکته:** با توجه به تغییر ساختار اخیر، تمامی سرویس‌های اپلیکیشن به صورت Local و بدون واسط Nginx اجرا می‌شوند و کاملاً پایدار هستند. سرویس‌های ناسالم و اضافی از کانفیگ داکر حذف شدند.
 
 ---
 
