@@ -20,17 +20,17 @@ target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     url = get_database_url()
-    schema = get_schema("DB_BACKEND_SCHEMA", "backend")
+    schema = get_schema("DB_BACKEND_SCHEMA", "public")
 
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        version_table="backend_alembic_version",
-        include_schemas=True,
-        version_table_schema=schema,
-        default_schema=schema,
+        version_table="alembic_version",
+        include_schemas=False,
+        version_table_schema=None,
+        default_schema=None,
     )
 
     with context.begin_transaction():
@@ -60,10 +60,10 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
-            include_schemas=True,
-            version_table="backend_alembic_version",
-            version_table_schema=schema,
-            default_schema=schema,
+            include_schemas=False,
+            version_table="alembic_version",
+            version_table_schema=None,
+            default_schema=None,
         )
 
         with context.begin_transaction():

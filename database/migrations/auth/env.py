@@ -20,7 +20,7 @@ target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     url = get_database_url()
-    schema = get_schema("DB_AUTH_SCHEMA", "auth")
+    schema = get_schema("DB_AUTH_SCHEMA", "public")
 
     context.configure(
         url=url,
@@ -28,9 +28,9 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
         version_table="auth_alembic_version",
-        include_schemas=True,
-        version_table_schema=schema,
-        default_schema=schema,
+        include_schemas=False,
+        version_table_schema=None,
+        default_schema=None,
     )
 
     with context.begin_transaction():
@@ -60,10 +60,10 @@ def run_migrations_online() -> None:
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True,
-            include_schemas=True,
+            include_schemas=False,
             version_table="auth_alembic_version",
-            version_table_schema=schema,
-            default_schema=schema,
+            version_table_schema=None,
+            default_schema=None,
         )
 
         with context.begin_transaction():
