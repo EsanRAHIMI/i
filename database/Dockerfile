@@ -6,22 +6,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 # Install requirements
-# Try copying and installing from root context first, fallback to current dir
-COPY database/requirements.txt* ./requirements.txt
+# Assumes build context is the 'database' directory
+COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy Model code (needed for SQLAlchemy metadata)
-# These MUST exist in the build context (Root of the repo)
-COPY backend /vendor/backend
-COPY auth /vendor/auth
-
-# Copy Configs and Scripts
-COPY database/alembic.backend.ini* database/alembic.auth.ini* database/migrate.sh* ./
+# migrations runner + alembic configs
+COPY alembic.backend.ini ./alembic.backend.ini
+COPY alembic.auth.ini ./alembic.auth.ini
+COPY migrate.sh ./migrate.sh
 RUN chmod +x ./migrate.sh
 
-# Copy Migrations data
-COPY database/migrations /database/migrations
-COPY database/src /database/src
+# migration envs and logic
+COPY migrations ./migrations
+COPY src ./src
 
-# Default command
+# Defualt command
 CMD ["./migrate.sh"]

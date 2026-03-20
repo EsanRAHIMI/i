@@ -8,14 +8,17 @@ from sqlalchemy import engine_from_config, pool, text
 from db_migrate.common import get_database_url, get_schema
 
 # Import backend Base metadata
-from app.database.models import Base  # type: ignore
+try:
+    from app.database.models import Base
+    target_metadata = Base.metadata
+except ImportError:
+    target_metadata = None
 
 config = context.config
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
