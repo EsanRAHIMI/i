@@ -40,7 +40,7 @@ This project uses a **hybrid Local + Docker** development strategy for maximum s
 app/
 ├── backend/           # Main FastAPI backend (Business logic, AI routing)
 ├── auth/              # FastAPI Auth Microservice (JWT, OAuth)
-├── frontend/          # Next.js 14 web app with Tailwind & 3D Avatar
+├── frontend/          # Next.js 16 web app with Tailwind & 3D Avatar
 ├── database/          # Centralized Database Migration Service (Alembic)
 ├── docs/              # System Documentation & Reports
 ├── docker-compose.yml # Infrastructure definition (DBs, Cache, Storage)
@@ -51,7 +51,7 @@ app/
 
 ## 💻 Tech Stack
 
-- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Frontend**: Next.js 16, React 19, Tailwind CSS 4
 - **Backend & Auth**: FastAPI, SQLAlchemy, Pydantic 
 - **AI Integration**: LangChain, Whisper (STT), Coqui/ElevenLabs (TTS)
 - **Data & Storage**: PostgreSQL (Relational), Redis (Cache/Tasks), MinIO (S3 Object Storage)
