@@ -17,7 +17,7 @@ export default function HomePage() {
           <div className="text-center space-y-6">
             <GlowingOrb size="large" />
             <div className="space-y-2">
-              <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">i Assistant</h1>
+              <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">Ai Department</h1>
               <p className="text-white/60">Initializing your intelligent assistant…</p>
             </div>
             <LoadingSpinner />
@@ -33,7 +33,7 @@ export default function HomePage() {
         <div className="text-center space-y-6">
           <GlowingOrb size="large" />
           <div className="space-y-3">
-            <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-5xl">i Assistant</h1>
+            <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-5xl">Ai Department</h1>
             <p className="mx-auto max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
               Your intelligent life assistant with voice, planning, calendar integration, and actionable insights.
             </p>

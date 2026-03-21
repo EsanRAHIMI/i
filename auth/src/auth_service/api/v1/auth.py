@@ -16,6 +16,7 @@ from fastapi.responses import FileResponse
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 import structlog
+import httpx
 from pydantic import BaseModel
 
 from ...database.base import get_db
@@ -233,6 +234,51 @@ async def login_user(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Login failed"
         )
+
+
+@router.get("/google/authorize")
+async def google_authorize(request: Request):
+    """Initiate Google OAuth flow by returning the authorization URL."""
+    state = str(uuid.uuid4())
+    # You might want to save the state in a cookie/session or redis to verify in callback
+    auth_url = auth_service.get_google_authorize_url(state=state)
+    logger.info("Initiating Google OAuth flow", state=state)
+    return {"authorization_url": auth_url, "state": state}
+
+
+class GoogleCallbackRequest(BaseModel):
+    code: str
+    state: Optional[str] = None
+
+
+@router.post("/google/callback", response_model=TokenResponse)
+async def google_callback(
+    body: GoogleCallbackRequest,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """Handle Google OAuth callback and log in user."""
+    try:
+        # 1. Exchange code for tokens
+        token_data = await auth_service.exchange_google_code_for_token(body.code)
+        
+        # 2. Get user info
+        google_info = await auth_service.get_google_user_info(token_data["access_token"])
+        
+        # 3. Get or create user in our DB
+        user = auth_service.get_or_create_google_user(db, google_info)
+        
+        logger.info("Google OAuth login successful", user_id=str(user.id), email=user.email)
+        
+        # 4. Return our own JWT token response
+        return auth_service.create_token_response(user)
+        
+    except httpx.HTTPStatusError as e:
+        logger.error("Google OAuth API error", error=str(e), status_code=e.response.status_code)
+        raise HTTPException(status_code=400, detail="Failed to authenticate with Google")
+    except Exception as e:
+        logger.error("Google OAuth internal error", error=str(e), exc_info=True)
+        raise HTTPException(status_code=500, detail="Authentication failed")
 
 
 @router.post("/refresh", response_model=TokenResponse)

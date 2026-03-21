@@ -82,6 +82,9 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     SMTP_USE_SSL: bool = False
     FRONTEND_URL: Optional[str] = "http://localhost:3000"
+    GOOGLE_CLIENT_ID: Optional[str] = None
+    GOOGLE_CLIENT_SECRET: Optional[str] = None
+    GOOGLE_REDIRECT_URI: Optional[str] = None
 
     PASSWORD_RESET_TOKEN_EXPIRE_MINUTES: int = 30
 

@@ -240,6 +240,21 @@ export class ApiClient {
     return { user, token: access_token };
   }
 
+  async initiateGoogleAuth(): Promise<{ authorization_url: string; state: string }> {
+    const response = await this.authClient.get('/v1/auth/google/authorize');
+    return response.data;
+  }
+
+  async handleGoogleCallback(code: string, state?: string): Promise<{ user: User; token: string }> {
+    const response = await this.authClient.post('/v1/auth/google/callback', {
+      code,
+      state
+    });
+    const { user, access_token, refresh_token } = response.data;
+    this.setAuthTokens(access_token, refresh_token);
+    return { user, token: access_token };
+  }
+
   async register(email: string, password: string): Promise<{ user: User; token: string }> {
     try {
       const response = await this.authClient.post('/v1/auth/register', { email, password });

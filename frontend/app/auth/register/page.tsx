@@ -98,7 +98,7 @@ export default function RegisterPage() {
           <GlowingOrb size="large" className="mx-auto" />
           <div>
             <h1 className="text-3xl font-bold text-white">Create your account</h1>
-            <p className="text-gray-400 mt-2">Join i Assistant today</p>
+            <p className="text-gray-400 mt-2">Join Ai Department today</p>
           </div>
         </div>
 

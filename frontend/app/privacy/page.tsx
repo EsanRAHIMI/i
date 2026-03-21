@@ -3,7 +3,7 @@ import { Surface } from '@/components/ui/Surface';
 import { Button } from '@/components/ui/Button';
 
 export const metadata = {
-  title: 'Privacy Policy | i Assistant',
+  title: 'Privacy Policy | Ai Department',
 };
 
 export default function PrivacyPolicyPage() {
@@ -19,7 +19,7 @@ export default function PrivacyPolicyPage() {
         <Surface material="regular" className="p-5 sm:p-7">
           <div className="prose prose-invert max-w-none prose-p:text-white/70 prose-li:text-white/70 prose-strong:text-white">
             <p>
-              This Privacy Policy describes how i Assistant collects, uses, and protects your information when you use
+              This Privacy Policy describes how Ai Department collects, uses, and protects your information when you use
               our app and services.
             </p>
 

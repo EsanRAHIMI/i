@@ -71,15 +71,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_origin_regex=r"^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 # Rate limit middleware (apply before auth so even unauth endpoints are protected)
 app.add_middleware(RateLimitMiddleware)
@@ -153,6 +144,16 @@ class RequestLoggingMiddleware:
 
 
 app.add_middleware(RequestLoggingMiddleware)
+
+# CORS middleware (MUST BE LAST to be outermost)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origin_regex=r"^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Health check endpoint

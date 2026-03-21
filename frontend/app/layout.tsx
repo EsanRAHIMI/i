@@ -19,7 +19,7 @@ const vazirmatn = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: 'i Assistant - Your Intelligent AI Life Assistant',
+  title: 'Ai Department - Your Intelligent AI Life Assistant',
   description: 'Next-generation Agentic AI Life Assistant designed to act as your conscious digital twin',
   icons: {
     icon: '/favicon.ico',

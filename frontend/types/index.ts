@@ -1,4 +1,4 @@
-// Core types for the i Assistant application
+// Core types for the Ai Department application
 
 export interface User {
   id: string;

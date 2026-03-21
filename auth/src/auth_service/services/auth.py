@@ -5,6 +5,8 @@ import secrets
 import hashlib
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
+import httpx
+from urllib.parse import urlencode
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -206,6 +208,79 @@ class AuthService:
         db.commit()
         db.refresh(settings_obj)
         return settings_obj
+
+    def get_google_authorize_url(self, state: str) -> str:
+        """Generate Google OAuth authorize URL."""
+        params = {
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "response_type": "code",
+            "scope": "openid email profile",
+            "access_type": "offline",
+            "prompt": "select_account",
+            "state": state
+        }
+        return f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+
+    async def exchange_google_code_for_token(self, code: str) -> Dict[str, Any]:
+        """Exchange Google auth code for access token."""
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://oauth2.googleapis.com/token",
+                data={
+                    "client_id": settings.GOOGLE_CLIENT_ID,
+                    "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                    "code": code,
+                    "grant_type": "authorization_code",
+                    "redirect_uri": settings.GOOGLE_REDIRECT_URI
+                }
+            )
+            response.raise_for_status()
+            return response.json()
+
+    async def get_google_user_info(self, access_token: str) -> Dict[str, Any]:
+        """Get user info from Google."""
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            response.raise_for_status()
+            return response.json()
+
+    def get_or_create_google_user(self, db: Session, google_info: Dict[str, Any]) -> User:
+        """Get existing user or create a new one from Google profile."""
+        email = google_info.get("email")
+        if not email:
+            raise ValueError("Email not provided by Google")
+
+        user = db.query(User).filter(User.email == email).first()
+        
+        if not user:
+            # Create a passwordless user
+            import uuid
+            user = User(
+                email=email,
+                password_hash=f"google_auth_{uuid.uuid4().hex}", # Marker for social auth
+                avatar_url=google_info.get("picture"),
+                timezone="UTC",
+                language_preference="en-US"
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            
+            # Create default settings
+            user_settings = UserSettings(user_id=user.id)
+            db.add(user_settings)
+            db.commit()
+        else:
+            # Update avatar if changed
+            if google_info.get("picture") and not user.avatar_url:
+                user.avatar_url = google_info.get("picture")
+                db.commit()
+                
+        return user
 
 
 # Global auth service instance

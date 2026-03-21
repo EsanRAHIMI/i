@@ -3,7 +3,7 @@ import { Surface } from '@/components/ui/Surface';
 import { Button } from '@/components/ui/Button';
 
 export const metadata = {
-  title: 'Terms of Service | i Assistant',
+  title: 'Terms of Service | Ai Department',
 };
 
 export default function TermsOfServicePage() {
@@ -19,7 +19,7 @@ export default function TermsOfServicePage() {
         <Surface material="regular" className="p-5 sm:p-7">
           <div className="prose prose-invert max-w-none prose-p:text-white/70 prose-li:text-white/70 prose-strong:text-white">
             <p>
-              These Terms of Service govern your use of i Assistant. By using the service, you agree to these terms.
+              These Terms of Service govern your use of Ai Department. By using the service, you agree to these terms.
             </p>
 
             <h2>Use of the service</h2>

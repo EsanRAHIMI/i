@@ -35,6 +35,8 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         "/v1/auth/logout",
         "/v1/auth/forgot-password",
         "/v1/auth/reset-password",
+        "/v1/auth/google/authorize",
+        "/v1/auth/google/callback",
     }
 
     # Path prefixes that don't require authentication

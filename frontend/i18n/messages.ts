@@ -20,7 +20,8 @@ export type MessageKey =
   | 'settings.tabs.language'
   | 'settings.save'
   | 'settings.saving'
-  | 'settings.saved';
+  | 'settings.saved'
+  | 'auth.orContinueWith';
 
 type Dict = Record<MessageKey, string>;
 
@@ -37,7 +38,7 @@ const en: Dict = {
   'auth.password': 'Password',
   'auth.forgotPassword': 'Forgot password?',
   'settings.title': 'Settings',
-  'settings.subtitle': 'Customize your i Assistant experience',
+  'settings.subtitle': 'Customize your Ai Department experience',
   'settings.tabs.general': 'General',
   'settings.tabs.privacy': 'Privacy',
   'settings.tabs.integrations': 'Integrations',
@@ -45,6 +46,7 @@ const en: Dict = {
   'settings.save': 'Save Changes',
   'settings.saving': 'Saving...',
   'settings.saved': 'Settings saved successfully',
+  'auth.orContinueWith': 'Or continue with',
 };
 
 const fa: Dict = {
@@ -60,7 +62,7 @@ const fa: Dict = {
   'auth.password': 'رمز عبور',
   'auth.forgotPassword': 'فراموشی رمز عبور؟',
   'settings.title': 'تنظیمات',
-  'settings.subtitle': 'تجربه i Assistant را شخصی‌سازی کنید',
+  'settings.subtitle': 'تجربه Ai Department را شخصی‌سازی کنید',
   'settings.tabs.general': 'عمومی',
   'settings.tabs.privacy': 'حریم خصوصی',
   'settings.tabs.integrations': 'اتصال‌ها',
@@ -68,6 +70,7 @@ const fa: Dict = {
   'settings.save': 'ذخیره تغییرات',
   'settings.saving': 'در حال ذخیره…',
   'settings.saved': 'تنظیمات با موفقیت ذخیره شد',
+  'auth.orContinueWith': 'یا ادامه با',
 };
 
 const ar: Dict = {
@@ -83,7 +86,7 @@ const ar: Dict = {
   'auth.password': 'كلمة المرور',
   'auth.forgotPassword': 'نسيت كلمة المرور؟',
   'settings.title': 'الإعدادات',
-  'settings.subtitle': 'خصص تجربة i Assistant',
+  'settings.subtitle': 'خصص تجربة Ai Department',
   'settings.tabs.general': 'عام',
   'settings.tabs.privacy': 'الخصوصية',
   'settings.tabs.integrations': 'التكامل',
@@ -91,6 +94,7 @@ const ar: Dict = {
   'settings.save': 'حفظ التغييرات',
   'settings.saving': 'جارٍ الحفظ…',
   'settings.saved': 'تم حفظ الإعدادات بنجاح',
+  'auth.orContinueWith': 'أو المتابعة مع',
 };
 
 export function getMessages(language: Language | string | undefined): Dict {
