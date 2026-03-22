@@ -75,6 +75,7 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 Starting FastAPI Application")
     logger.info("=" * 60)
     logger.info(f"📍 API URL: http://0.0.0.0:8000")
+    logger.info(f"🔑 Google Redirect URI: {settings.GOOGLE_REDIRECT_URI}")
     logger.info(f"🔌 WebSocket: ws://0.0.0.0:8000/api/v1/voice/stream/{{session_id}}")
     logger.info("=" * 60)
     

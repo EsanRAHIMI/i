@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 import httpx
 from urllib.parse import urlencode
 from sqlalchemy.orm import Session
+import structlog
 
 from ..config import settings
 from ..database.models import User, UserSettings, PasswordResetToken
@@ -21,6 +22,7 @@ class AuthService:
 
     def __init__(self):
         self.jwt_manager = jwt_manager
+        self.logger = structlog.get_logger(__name__)
 
     def create_user(self, db: Session, user_create: UserCreate, ip_address: str = None) -> User:
         """Create a new user."""
@@ -220,6 +222,7 @@ class AuthService:
             "prompt": "select_account",
             "state": state
         }
+        self.logger.info("Generating Google Auth URL", redirect_uri=settings.GOOGLE_REDIRECT_URI, prompt=params.get("prompt"))
         return f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
 
     async def exchange_google_code_for_token(self, code: str) -> Dict[str, Any]:

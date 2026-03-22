@@ -26,7 +26,7 @@ router = APIRouter()
 @router.post("/connect", response_model=dict)
 async def initiate_calendar_connection(
     request: Request,
-    oauth_data: CalendarOAuthInitiate,
+    oauth_data: Optional[CalendarOAuthInitiate] = None,
     current_user: User = Depends(get_current_user)
 ):
     """
@@ -36,12 +36,11 @@ async def initiate_calendar_connection(
     to grant calendar access permissions.
     """
     try:
-        # Use GOOGLE_REDIRECT_URI from settings (must match Google Cloud Console)
-        # If not set, construct from request URL
-        if settings.GOOGLE_REDIRECT_URI:
-            redirect_uri = settings.GOOGLE_REDIRECT_URI
-        else:
-            # Construct callback URL from request as fallback
+        # Strictly use GOOGLE_REDIRECT_URI from settings for consistency
+        redirect_uri = settings.GOOGLE_REDIRECT_URI
+        if not redirect_uri:
+            # Only use request URL construction as a safety logger, but the URI MUST be from settings
+            logger.error("GOOGLE_REDIRECT_URI is NOT set in environment variables!")
             base_url = f"{request.url.scheme}://{request.url.netloc}"
             redirect_uri = f"{base_url}/api/v1/calendar/oauth/callback"
         
@@ -129,13 +128,19 @@ async def handle_oauth_callback_post(
     and exchanges it for access tokens.
     """
     try:
-        # Use GOOGLE_REDIRECT_URI from settings (must match the one used in initiation)
-        if settings.GOOGLE_REDIRECT_URI:
-            redirect_uri = settings.GOOGLE_REDIRECT_URI
-        else:
-            # Construct callback URL from request as fallback
+        # Strictly use the EXACT same redirect_uri from settings for token exchange
+        redirect_uri = settings.GOOGLE_REDIRECT_URI
+        if not redirect_uri:
+            logger.error("GOOGLE_REDIRECT_URI is NOT set during token exchange!")
             base_url = f"{request.url.scheme}://{request.url.netloc}"
             redirect_uri = f"{base_url}/api/v1/calendar/oauth/callback"
+        
+        logger.info(
+            "Exchanging calendar code for tokens",
+            has_code=bool(callback_data.code),
+            redirect_uri=redirect_uri,
+            user_id=current_user.id
+        )
         
         # Exchange code for tokens and create calendar connection
         connection = await calendar_service.exchange_code_for_tokens(

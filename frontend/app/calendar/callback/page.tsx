@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { apiClient } from '@/lib/api';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -12,7 +12,12 @@ function CalendarCallbackContent() {
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing');
   const [message, setMessage] = useState('در حال اتصال به گوگل کالندر...');
 
+  const hasHandledRef = useRef(false);
+  
   useEffect(() => {
+    if (hasHandledRef.current) return;
+    hasHandledRef.current = true;
+    
     const handleCallback = async () => {
       try {
         const code = searchParams?.get('code') || null;

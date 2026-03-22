@@ -437,10 +437,8 @@ export class ApiClient {
     return response.data;
   }
 
-  async connectCalendar(redirectUri?: string): Promise<{ authorization_url: string; state: string; redirect_uri: string }> {
-    const response = await this.client.post('/calendar/connect', {
-      redirect_uri: redirectUri
-    });
+  async connectCalendar(): Promise<{ authorization_url: string; state: string; redirect_uri: string }> {
+    const response = await this.client.post('/calendar/connect', {});
     return response.data;
   }
 

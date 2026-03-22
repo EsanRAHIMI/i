@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"📚 API Docs: http://0.0.0.0:8001/v1/docs")
     logger.info("=" * 60)
     
-    logger.info("✅ Startup complete")
+    logger.info(f"✅ Startup complete - Redirect URI: {settings.GOOGLE_REDIRECT_URI}")
     
     yield
     

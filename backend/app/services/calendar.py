@@ -30,6 +30,9 @@ class GoogleCalendarService:
     """Service for Google Calendar integration."""
     
     SCOPES = [
+        'openid',
+        'email',
+        'profile',
         'https://www.googleapis.com/auth/calendar',
         'https://www.googleapis.com/auth/calendar.events'
     ]
@@ -76,7 +79,7 @@ class GoogleCalendarService:
                 prompt='consent'  # Force consent to get refresh token
             )
             
-            logger.info("Generated OAuth authorization URL", state=state)
+            logger.info("Generated OAuth authorization URL", state=state, auth_url=auth_url)
             return auth_url
             
         except Exception as e:
