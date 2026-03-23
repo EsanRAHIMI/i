@@ -159,8 +159,18 @@ async def handle_oauth_callback_post(
         return connection
         
     except Exception as e:
-        logger.error("Failed to process OAuth callback", error=str(e), user_id=current_user.id)
-        raise HTTPException(status_code=400, detail="Failed to process OAuth callback")
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(
+            "Failed to process OAuth callback",
+            error=str(e),
+            trace=error_trace,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to process OAuth callback: {str(e)}"
+        )
 
 
 @router.get("/connection", response_model=Optional[CalendarConnection])

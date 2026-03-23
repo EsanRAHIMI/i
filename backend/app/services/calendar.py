@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import httpx
+import os
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
@@ -15,6 +16,11 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from sqlalchemy.orm import Session
 import structlog
+
+# Allow insecure transport for local development and relax scope validation
+# This avoids "Scope has changed" errors when Google normalizes scopes
+os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
 
 from ..config import settings
 from ..database.models import Calendar, Event, User
@@ -29,10 +35,11 @@ logger = structlog.get_logger(__name__)
 class GoogleCalendarService:
     """Service for Google Calendar integration."""
     
+    # Use canonical scopes to match what Google returns
     SCOPES = [
         'openid',
-        'email',
-        'profile',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
         'https://www.googleapis.com/auth/calendar',
         'https://www.googleapis.com/auth/calendar.events'
     ]

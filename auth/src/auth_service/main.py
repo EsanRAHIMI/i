@@ -20,6 +20,13 @@ from .middleware.auth import JWTAuthMiddleware
 from .middleware.rate_limit import RateLimitMiddleware
 
 # Configure structured logging
+import os
+
+# Set OAUTHLIB_INSECURE_TRANSPORT for local development to allow OAuth over HTTP
+# This is required for Google OAuth to work on localhost
+if not os.getenv("DOCKER_ENV") and not os.path.exists("/app"):
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
 if os.getenv("TESTING"):
     log_file = None
 elif os.path.exists("/app") and os.access("/app", os.W_OK):

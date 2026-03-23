@@ -32,6 +32,12 @@ from .core.tracing import init_tracing, TracingConfig
 
 # Configure structured logging and tracing
 import os
+
+# Set OAUTHLIB_INSECURE_TRANSPORT for local development to allow OAuth over HTTP
+# This is required for Google Calendar API to work on localhost
+if not os.getenv("DOCKER_ENV") and not os.path.exists("/app"):
+    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
+
 # Use relative path for logs in local development, absolute path in Docker
 if os.getenv("TESTING"):
     log_file = None
