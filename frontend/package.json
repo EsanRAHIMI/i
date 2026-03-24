@@ -1,7 +1,7 @@
 {
-  "name": "@i-assistant/frontend",
+  "name": "@aidepartment/frontend",
   "version": "1.0.0",
-  "description": "Next.js frontend for i Assistant",
+  "description": "Next.js frontend for Ai Department",
   "private": true,
   "scripts": {
     "dev": "node check-env.js && next dev",

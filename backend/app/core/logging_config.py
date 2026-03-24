@@ -53,7 +53,7 @@ class TimestampProcessor:
 class ServiceInfoProcessor:
     """Processor to add service information to log records."""
     
-    def __init__(self, service_name: str = "ai-assistant-backend", version: str = "1.0.0"):
+    def __init__(self, service_name: str = "aidepartment-backend", version: str = "1.0.0"):
         self.service_name = service_name
         self.version = version
     
@@ -111,7 +111,7 @@ class PerformanceProcessor:
 
 def configure_logging(
     log_level: str = "INFO",
-    service_name: str = "ai-assistant-backend",
+    service_name: str = "aidepartment-backend",
     version: str = "1.0.0",
     enable_json: bool = True,
     log_file: Optional[str] = None

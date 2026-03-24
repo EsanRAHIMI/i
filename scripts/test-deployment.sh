@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# i Assistant - Deployment Testing Script
+# Ai Department - Deployment Testing Script
 # =============================================================================
 # Comprehensive testing of deployment and infrastructure
 
@@ -111,17 +111,17 @@ test_docker_builds() {
     log_info "Testing Docker image builds..."
     
     # Test backend image build
-    if docker build -t i-assistant-backend:test ./backend &> /dev/null; then
+    if docker build -t aidepartment-backend:test ./backend &> /dev/null; then
         add_test_result "Backend Image Build" "PASS"
-        docker rmi i-assistant-backend:test &> /dev/null || true
+        docker rmi aidepartment-backend:test &> /dev/null || true
     else
         add_test_result "Backend Image Build" "FAIL"
     fi
     
     # Test frontend image build
-    if docker build -t i-assistant-frontend:test ./frontend &> /dev/null; then
+    if docker build -t aidepartment-frontend:test ./frontend &> /dev/null; then
         add_test_result "Frontend Image Build" "PASS"
-        docker rmi i-assistant-frontend:test &> /dev/null || true
+        docker rmi aidepartment-frontend:test &> /dev/null || true
     else
         add_test_result "Frontend Image Build" "FAIL"
     fi
@@ -377,7 +377,7 @@ cleanup() {
     docker-compose down -v &> /dev/null || true
     
     # Remove test images
-    docker rmi i-assistant-backend:test i-assistant-frontend:test &> /dev/null || true
+    docker rmi aidepartment-backend:test aidepartment-frontend:test &> /dev/null || true
     
     log_success "Cleanup completed"
 }
@@ -416,7 +416,7 @@ generate_report() {
 # Main function
 main() {
     echo "==============================================================================="
-    echo -e "${BLUE}i Assistant - Deployment Testing${NC}"
+    echo -e "${BLUE}Ai Department - Deployment Testing${NC}"
     echo "==============================================================================="
     echo
     

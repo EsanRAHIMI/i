@@ -145,7 +145,7 @@ export const useAppStore = create<AppStore>()(
         reset: () => set(initialState, false, 'reset'),
       }),
       {
-        name: 'i-assistant-store',
+        name: 'aidepartment-store',
         partialize: (state) => ({
           // Only persist settings, not user (user is tied to auth_token)
           // This prevents having stale user data when token is invalid

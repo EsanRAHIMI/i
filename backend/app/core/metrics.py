@@ -1,5 +1,5 @@
 """
-Comprehensive metrics collection for the AI Assistant system.
+Comprehensive metrics collection for the Ai Department system.
 """
 import time
 from typing import Dict, Any, Optional
@@ -229,7 +229,7 @@ APPLICATION_INFO = Info(
 # Set application info
 APPLICATION_INFO.info({
     'version': '1.0.0',
-    'name': 'intelligent-ai-assistant',
+    'name': 'aidepartment',
     'environment': 'production'
 })
 

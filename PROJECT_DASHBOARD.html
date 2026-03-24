@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد مدیریت پروژه Ai Department</title>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #4f46e5;
+            --bg: #0f172a;
+            --card-bg: #1e293b;
+            --text: #f8fafc;
+            --text-dim: #94a3b8;
+            --accent: #22d3ee;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.8;
+            text-align: justify;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 50px 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 24px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+
+        h1 { margin: 0; font-size: 2.8rem; font-weight: 700; letter-spacing: -1px; }
+        p.subtitle { margin-top: 15px; opacity: 0.9; font-size: 1.1rem; }
+
+        .section-title {
+            border-right: 5px solid var(--accent);
+            padding-right: 15px;
+            margin-top: 50px;
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 30px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: var(--primary);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.2);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+        }
+
+        .port-badge {
+            background: rgba(99, 102, 241, 0.2);
+            color: var(--accent);
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .card p {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+            text-align: justify;
+        }
+
+        .links {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn {
+            display: block;
+            text-align: center;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover { 
+            background: var(--secondary);
+            filter: brightness(1.1);
+        }
+
+        .btn.outline {
+            background: transparent;
+            border: 1.5px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn.outline:hover {
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        .btn.db {
+            background: #2563eb;
+            border: none;
+        }
+
+        .routes-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .routes-table th, .routes-table td {
+            padding: 18px;
+            text-align: right;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .routes-table th { 
+            background: rgba(255,255,255,0.03); 
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .method {
+            font-family: monospace;
+            font-weight: bold;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+        .get { color: var(--success); background: rgba(16, 185, 129, 0.1); }
+        .post { color: var(--warning); background: rgba(245, 158, 11, 0.1); }
+        .ws { color: var(--primary); background: rgba(99, 102, 241, 0.1); }
+        .host-link { color: var(--accent); font-family: monospace; font-size: 0.85rem; }
+
+        .footer {
+            text-align: center;
+            margin-top: 80px;
+            padding: 30px;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: var(--accent);
+            direction: ltr;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>مرکز مدیریت Ai Department</h1>
+        <p class="subtitle">مانیتورینگ و دسترسی سریع به تمام سرویس‌ها و دیتابیس‌ها (محلی و آنلاین)</p>
+    </header>
+
+    <!-- بخش محیط محلی -->
+    <h2 class="section-title">محیط توسعه محلی (Localhost)</h2>
+    <div class="grid">
+        <div class="card">
+            <h2>فرانت‌اِند <span class="port-badge">Port 3000</span></h2>
+            <p>رابط کاربری پیشرفته Next.js برای مدیریت دستیار هوشمند، چت صوتی و سازماندهی وظایف روزانه.</p>
+            <div class="links">
+                <a href="http://localhost:3000" target="_blank" class="btn">باز کردن اپلیکیشن محلی</a>
+                <a href="http://localhost:3000/dashboard" target="_blank" class="btn outline">پنل کاربری محلی</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>بک‌اِند اصلی <span class="port-badge">Port 8000</span></h2>
+            <p>هسته پردازشی شامل استریم صدا، هوش مصنوعی، تقویم گوگل و واتس‌اپ. مدیریت منطق تجاری.</p>
+            <div class="links">
+                <a href="http://localhost:8000/api/v1/docs" target="_blank" class="btn">مستندات (Swagger Docs)</a>
+                <a href="http://localhost:8000/health" target="_blank" class="btn outline">وضعیت سلامت سرویس</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>سرویس احراز هویت <span class="port-badge">Port 8001</span></h2>
+            <p>مدیریت متمرکز کاربران، نشست‌های فعال، امنیت و تنظیمات پروفایل در کل اکوسیستم پروژه.</p>
+            <div class="links">
+                <a href="http://localhost:8001/v1/docs" target="_blank" class="btn">مستندات (Swagger Docs)</a>
+                <a href="http://localhost:8001/health" target="_blank" class="btn outline">وضعیت سلامت سرویس</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- بخش آنلاین و هاست -->
+    <h2 class="section-title">نسخه‌های آنلاین و هاست (Production/Staging)</h2>
+    <div class="grid">
+        <div class="card">
+            <h2>🌐 سرویس‌های آنلاین</h2>
+            <p>آدرس‌های عملیاتی برای دسترسی به پروژه در محیط هاست و استفاده از سرویس‌های ابری.</p>
+            <div class="links">
+                <a href="https://aidepartment.net/" target="_blank" class="btn outline">Frontend (Prod)</a>
+                <a href="https://api.aidepartment.net/" target="_blank" class="btn outline">Backend API (Prod)</a>
+                <a href="https://auth.aidepartment.net/" target="_blank" class="btn outline">Auth Service (Prod)</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🗄️ مدیریت دیتابیس‌ها</h2>
+            <p>دسترسی مستقیم به پایگاه داده‌های محلی و آنلاین برای مدیریت رکوردها و مشاهده کاربران.</p>
+            <div class="links">
+                <a href="http://localhost:8080/?pgsql=172.18.0.1&username=esan&db=i_DB&ns=public" target="_blank" class="btn db">Database (Local / Adminer)</a>
+                <a href="https://nebul.ir/db?pgsql=i-db-hqvtdv&username=esan&db=i_db&ns=public&table=users" target="_blank" class="btn db">Database (Host / Production)</a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>☁️ زیرساخت‌های جانبی</h2>
+            <p>سرویس‌های ذخیره‌سازی فایل و توزیع محتوا برای آواتارها و فایل‌های صوتی ضبط شده.</p>
+            <div class="links">
+                <a href="http://localhost:9001" target="_blank" class="btn outline">Local MinIO Console</a>
+                <a href="https://dvunuoe8609h3.cloudfront.net" target="_blank" class="btn outline">CloudFront (S3 Storage)</a>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="section-title">نقشه مسیرهای استراتژیک</h2>
+    <table class="routes-table">
+        <thead>
+            <tr>
+                <th style="width: 100px;">متد</th>
+                <th>مسیر (Path)</th>
+                <th>کاربرد اصلی</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><span class="method ws">WS</span></td>
+                <td><code>/api/v1/voice/stream</code></td>
+                <td>استریم صدای دوطرفه با هوش مصنوعی واقعی</td>
+            </tr>
+            <tr>
+                <td><span class="method get">GET</span></td>
+                <td><code>/v1/auth/google/authorize</code></td>
+                <td>شروع فرآیند احراز هویت و دسترسی به تقویم گوگل</td>
+            </tr>
+            <tr>
+                <td><span class="method post">POST</span></td>
+                <td><code>/v1/auth/avatar/upload</code></td>
+                <td>آپلود و بهینه‌سازی تصاویر پروفایل بر روی S3</td>
+            </tr>
+            <tr>
+                <td><span class="method post">POST</span></td>
+                <td><code>/api/v1/whatsapp/webhook</code></td>
+                <td>دریافت پیام‌های واتس‌اپ و پردازش توسط دستیار</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="footer">
+        طراحی شده برای پروژه‌ی Ai Department • تمام حقوق برای سیستم مانیتورینگ محفوظ است
+    </div>
+</div>
+
+</body>
+</html>

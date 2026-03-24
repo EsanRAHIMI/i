@@ -32,12 +32,6 @@ from .core.tracing import init_tracing, TracingConfig
 
 # Configure structured logging and tracing
 import os
-
-# Set OAUTHLIB_INSECURE_TRANSPORT for local development to allow OAuth over HTTP
-# This is required for Google Calendar API to work on localhost
-if not os.getenv("DOCKER_ENV") and not os.path.exists("/app"):
-    os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
-
 # Use relative path for logs in local development, absolute path in Docker
 if os.getenv("TESTING"):
     log_file = None
@@ -97,8 +91,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
-    title="Intelligent AI Assistant API",
-    description="Next-generation Agentic AI Life Assistant API",
+    title="Ai Department API",
+    description="Next-generation Ai Department API",
     version="1.0.0",
     docs_url="/api/v1/docs",
     redoc_url="/api/v1/redoc",
@@ -289,7 +283,7 @@ async def metrics():
 async def root():
     """Root endpoint."""
     return {
-        "message": "Intelligent AI Assistant API",
+        "message": "Ai Department API",
         "version": "1.0.0",
         "docs": "/api/v1/docs"
     }

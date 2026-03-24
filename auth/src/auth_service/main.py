@@ -69,8 +69,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI application
 app = FastAPI(
-    title="I App Auth Service",
-    description="Authentication microservice for I App",
+    title="Ai Department Auth Service",
+    description="Authentication microservice for Ai Department",
     version="1.0.0",
     docs_url="/v1/docs",
     redoc_url="/v1/redoc",
@@ -180,7 +180,7 @@ async def health_check():
 async def root():
     """Root endpoint."""
     return {
-        "message": "I App Auth Service",
+        "message": "Ai Department Auth Service",
         "version": "1.0.0",
         "docs": "/v1/docs"
     }
