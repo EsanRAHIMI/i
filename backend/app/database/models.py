@@ -81,6 +81,8 @@ class Calendar(Base):
     sync_token = Column(String(255))
     last_sync_at = Column(TIMESTAMP)
     webhook_id = Column(String(255))
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     # Relationships
     user = relationship("User", back_populates="calendars")
@@ -104,8 +106,8 @@ class Event(Base):
     end_time = Column(TIMESTAMP, nullable=False)
     location = Column(Text)
     attendees = Column(JSONType, default=[])
-    ai_generated = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     # Relationships
     user = relationship("User", back_populates="events")
@@ -129,6 +131,7 @@ class Task(Base):
     context_data = Column(JSONType, default={})
     created_by_ai = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     # Relationships
     user = relationship("User", back_populates="tasks")

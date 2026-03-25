@@ -278,7 +278,7 @@ class GoogleCalendarService:
             
             google_updated = google_event.get('updated')
             if google_updated:
-                google_updated_dt = datetime.fromisoformat(google_updated.replace('Z', '+00:00'))
+                google_updated_dt = datetime.fromisoformat(google_updated.replace('Z', '+00:00')).replace(tzinfo=None)
                 
                 # If Google event is newer, update local event
                 if not local_event.updated_at or google_updated_dt > local_event.updated_at:
@@ -318,12 +318,12 @@ class GoogleCalendarService:
         end = google_event.get('end', {})
         
         if 'dateTime' in start:
-            local_event.start_time = datetime.fromisoformat(start['dateTime'].replace('Z', '+00:00'))
+            local_event.start_time = datetime.fromisoformat(start['dateTime'].replace('Z', '+00:00')).replace(tzinfo=None)
         else:
             local_event.start_time = datetime.fromisoformat(start['date'] + 'T00:00:00+00:00')
         
         if 'dateTime' in end:
-            local_event.end_time = datetime.fromisoformat(end['dateTime'].replace('Z', '+00:00'))
+            local_event.end_time = datetime.fromisoformat(end['dateTime'].replace('Z', '+00:00')).replace(tzinfo=None)
         else:
             local_event.end_time = datetime.fromisoformat(end['date'] + 'T23:59:59+00:00')
         
@@ -457,13 +457,13 @@ class GoogleCalendarService:
             end = google_event.get('end', {})
             
             if 'dateTime' in start:
-                start_time = datetime.fromisoformat(start['dateTime'].replace('Z', '+00:00'))
+                start_time = datetime.fromisoformat(start['dateTime'].replace('Z', '+00:00')).replace(tzinfo=None)
             else:
                 # All-day event
                 start_time = datetime.fromisoformat(start['date'] + 'T00:00:00+00:00')
             
             if 'dateTime' in end:
-                end_time = datetime.fromisoformat(end['dateTime'].replace('Z', '+00:00'))
+                end_time = datetime.fromisoformat(end['dateTime'].replace('Z', '+00:00')).replace(tzinfo=None)
             else:
                 # All-day event
                 end_time = datetime.fromisoformat(end['date'] + 'T23:59:59+00:00')
