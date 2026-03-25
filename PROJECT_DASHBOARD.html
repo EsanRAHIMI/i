@@ -200,6 +200,34 @@
             direction: ltr;
             display: inline-block;
         }
+
+        .config-box {
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            color: #e2e8f0;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            margin-top: 15px;
+            direction: ltr;
+        }
+
+        .config-title {
+            color: var(--accent);
+            font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .copy-hint {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            float: left;
+            margin-top: -30px;
+        }
     </style>
 </head>
 <body>
@@ -270,6 +298,49 @@
                 <a href="http://localhost:9001" target="_blank" class="btn outline">Local MinIO Console</a>
                 <a href="https://dvunuoe8609h3.cloudfront.net" target="_blank" class="btn outline">CloudFront (S3 Storage)</a>
             </div>
+        </div>
+    </div>
+
+    <h2 class="section-title">تنظیمات محیطی تولید (Production Environment Variables)</h2>
+    <div class="grid">
+        <div class="card" style="grid-column: span 1.5;">
+            <h2>🔑 تنظیمات Auth Service <span class="port-badge">Production</span></h2>
+            <p>این تنظیمات را در محیط هاست سرویس احراز هویت وارد کنید تا ورود با گوگل فعال شود.</p>
+            <div class="config-box">
+<span class="config-title"># auth.aidepartment.net</span>
+DATABASE_URL=postgresql://esan:Admin_1234_1234@i-postgres:5432/i_assistant_auth
+JWT_ALGORITHM=RS256
+GOOGLE_CLIENT_ID=133652045811-rio7u1133jgt007rnsqbihm87hivtsml.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=********
+GOOGLE_REDIRECT_URI=https://auth.aidepartment.net/v1/auth/google/callback
+FRONTEND_URL=https://aidepartment.net
+ALLOWED_ORIGINS=["https://aidepartment.net", "https://api.aidepartment.net", "https://auth.aidepartment.net"]</div>
+        </div>
+
+        <div class="card" style="grid-column: span 1.5;">
+            <h2>⚙️ تنظیمات Backend Service <span class="port-badge">Production</span></h2>
+            <p>این تنظیمات را برای بک‌اِند وارد کنید تا اتصال به تقویم گوگل و واتس‌اپ برقرار شود.</p>
+            <div class="config-box">
+<span class="config-title"># api.aidepartment.net</span>
+DATABASE_URL=postgresql://esan:Admin_1234_1234@i-postgres:5432/i_DB
+GOOGLE_CLIENT_ID=133652045811-rio7u1133jgt007rnsqbihm87hivtsml.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=********
+GOOGLE_REDIRECT_URI=https://api.aidepartment.net/api/v1/calendar/oauth/callback
+FRONTEND_URL=https://aidepartment.net
+ALLOWED_ORIGINS=["https://aidepartment.net", "https://api.aidepartment.net", "https://auth.aidepartment.net"]</div>
+        </div>
+
+        <div class="card" style="grid-column: span 1.5;">
+            <h2>💻 تنظیمات Frontend <span class="port-badge">Production</span></h2>
+            <p>تنظیمات لازم برای ارتباط فرانت‌اِند با ای‌پی‌آی‌های تولید.</p>
+            <div class="config-box">
+<span class="config-title"># aidepartment.net</span>
+NEXT_PUBLIC_API_URL=https://api.aidepartment.net/api/v1
+NEXT_PUBLIC_AUTH_API_URL=https://auth.aidepartment.net
+NEXT_PUBLIC_WS_URL=wss://api.aidepartment.net/api/v1/voice/stream
+NEXTAUTH_URL=https://aidepartment.net
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=133652045811-rio7u1133jgt007rnsqbihm87hivtsml.apps.googleusercontent.com
+NEXTAUTH_SECRET=********</div>
         </div>
     </div>
 
