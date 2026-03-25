@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     """Application settings."""
 
     # Application
-    APP_NAME: str = "Intelligent AI Assistant"
+    APP_NAME: str = "Ai Department"
     DEBUG: bool = False
 
     # Security

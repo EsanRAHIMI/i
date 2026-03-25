@@ -1,4 +1,4 @@
-# گزارش فنی تست عملکرد برنامه i Assistant
+# گزارش فنی تست عملکرد برنامه Ai Department
 
 **تاریخ تست:** 1 نوامبر 2025  
 **کاربر تست:** testuser@test.com  
@@ -299,6 +299,6 @@ api_router.include_router(tasks_router, prefix="/tasks", tags=["tasks"])
 
 ---
 
-**تهیه شده توسط:** AI Assistant  
+**تهیه شده توسط:** Ai Department  
 **تاریخ:** 1 نوامبر 2025
 

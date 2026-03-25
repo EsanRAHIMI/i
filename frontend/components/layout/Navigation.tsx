@@ -96,8 +96,8 @@ export function Navigation() {
               isActive={voiceSession?.status === 'listening' || voiceSession?.status === 'processing'} 
             />
             <div className="min-w-0">
-              <p className="text-sm font-semibold tracking-tight text-white">i Assistant</p>
-              <p className="text-xs text-white/45">Personal OS dashboard</p>
+              <p className="text-sm font-semibold tracking-tight text-white">Ai Department</p>
+              <p className="text-xs text-white/45">Personal AI OS</p>
             </div>
           </div>
           
@@ -184,7 +184,7 @@ export function Navigation() {
               size="sm" 
               isActive={voiceSession?.status === 'listening' || voiceSession?.status === 'processing'} 
             />
-            <span className="ms-3 text-sm font-semibold tracking-tight text-white">i Assistant</span>
+            <span className="ms-3 text-sm font-semibold tracking-tight text-white">Ai Department</span>
           </div>
           
           <Button

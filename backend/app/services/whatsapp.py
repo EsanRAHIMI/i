@@ -132,7 +132,7 @@ class MessageTemplateManager:
                 "name": "confirmation_request",
                 "language": "en_US",
                 "category": "UTILITY",
-                "body": "🤖 AI Assistant needs confirmation:\n\n{{1}}\n\nReply with:\n• Y - Yes, proceed\n• N - No, cancel\n• C - Cancel action"
+                "body": "🤖 Ai Department needs confirmation:\n\n{{1}}\n\nReply with:\n• Y - Yes, proceed\n• N - No, cancel\n• C - Cancel action"
             },
             "daily_summary": {
                 "name": "daily_summary", 
@@ -150,7 +150,7 @@ class MessageTemplateManager:
                 "name": "welcome_optin",
                 "language": "en_US",
                 "category": "UTILITY", 
-                "body": "Welcome to your AI Assistant! 🤖\n\nI can help you manage your calendar, tasks, and daily activities through WhatsApp.\n\nReply Y to opt-in to notifications, or N to decline."
+                "body": "Welcome to your Ai Department! 🤖\n\nI can help you manage your calendar, tasks, and daily activities through WhatsApp.\n\nReply Y to opt-in to notifications, or N to decline."
             }
         }
     
@@ -492,7 +492,7 @@ class WhatsAppService:
             # Send welcome message
             welcome_message = WhatsAppMessageCreate(
                 recipient=opt_in_request.phone_number,
-                content="✅ You've successfully opted in to AI Assistant notifications! I'll help you stay organized and productive.",
+                content="✅ You've successfully opted in to Ai Department notifications! I'll help you stay organized and productive.",
                 message_type=MessageType.TEXT
             )
             

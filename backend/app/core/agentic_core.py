@@ -1,7 +1,7 @@
 """
 Agentic Core - Central AI reasoning, planning, and task execution engine.
 
-This module orchestrates the entire AI assistant system, combining intent recognition,
+This module orchestrates the entire Ai Department system, combining intent recognition,
 task planning, action execution, and context management to provide intelligent
 responses and autonomous task execution.
 """
@@ -57,7 +57,7 @@ class AgenticCore:
     Central AI reasoning, planning, and task execution engine.
     
     Orchestrates intent recognition, task planning, action execution,
-    and context management to provide intelligent AI assistance.
+    and context management to provide intelligent Ai Department assistance.
     """
     
     def __init__(

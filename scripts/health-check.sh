@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # =============================================================================
-# i Assistant - Health Check Script
+# Ai Department - Health Check Script
 # =============================================================================
 # Comprehensive health check for all services
 
@@ -234,7 +234,7 @@ generate_report() {
 # Main function
 main() {
     echo "==============================================================================="
-    echo -e "${BLUE}i Assistant - Health Check${NC}"
+    echo -e "${BLUE}Ai Department - Health Check${NC}"
     echo "==============================================================================="
     echo
     

@@ -1,6 +1,6 @@
-# 🌟 i Assistant - Intelligent AI Life Assistant
+# 🌟 Ai Department - Intelligent AI Life Assistant
 
-A next-generation **Agentic AI Life Assistant** designed to act as your **conscious digital twin**, continuously learning, guiding, and optimizing real-world actions in real time.
+A next-generation **Ai Department** designed to act as your **conscious digital twin**, continuously learning, guiding, and optimizing real-world actions in real time.
 
 ---
 

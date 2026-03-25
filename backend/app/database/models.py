@@ -1,5 +1,5 @@
 """
-SQLAlchemy ORM models for the intelligent AI assistant system.
+SQLAlchemy ORM models for the Ai Department system.
 """
 from sqlalchemy import (
     Column, String, Text, Integer, Boolean, TIMESTAMP, 

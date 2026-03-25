@@ -118,7 +118,7 @@ def send_confirmation_message(self, user_id: str, action_description: str, confi
         
         # Format confirmation message
         confirmation_message = f"""
-🤖 AI Assistant Confirmation
+🤖 Ai Department Confirmation
 
 Action: {action_description}
 

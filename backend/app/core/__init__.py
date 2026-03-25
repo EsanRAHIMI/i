@@ -1,5 +1,5 @@
 """
-Agentic Core module for intelligent AI assistant.
+Agentic Core module for Ai Department.
 
 This module contains the central AI reasoning, planning, and task execution engine.
 """

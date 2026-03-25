@@ -368,7 +368,7 @@ class ActionExecutor:
         try:
             user_id = parameters["user_id"]
             recipient = parameters["recipient"]
-            subject = parameters.get("subject", "Message from AI Assistant")
+            subject = parameters.get("subject", "Message from Ai Department")
             message = parameters["message"]
             
             # Send email through email service
