@@ -106,6 +106,7 @@ class Event(Base):
     end_time = Column(TIMESTAMP, nullable=False)
     location = Column(Text)
     attendees = Column(JSONType, default=[])
+    ai_generated = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 

@@ -290,12 +290,12 @@ async def get_calendar_events(
         
         # Parse date filters
         if start_date:
-            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00')).replace(tzinfo=None)
         else:
             start_dt = datetime.utcnow() - timedelta(days=7)
         
         if end_date:
-            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00')).replace(tzinfo=None)
         else:
             end_dt = datetime.utcnow() + timedelta(days=30)
         
@@ -361,8 +361,8 @@ async def create_calendar_event(
             google_event_id=google_event_id,
             title=event_data.title,
             description=event_data.description,
-            start_time=event_data.start_time,
-            end_time=event_data.end_time,
+            start_time=event_data.start_time.replace(tzinfo=None) if event_data.start_time.tzinfo else event_data.start_time,
+            end_time=event_data.end_time.replace(tzinfo=None) if event_data.end_time.tzinfo else event_data.end_time,
             location=event_data.location,
             attendees=event_data.attendees,
             ai_generated=True  # Assume AI-generated for API-created events
@@ -476,9 +476,9 @@ async def update_calendar_event(
         if event_data.description is not None:
             event.description = event_data.description
         if event_data.start_time is not None:
-            event.start_time = event_data.start_time
+            event.start_time = event_data.start_time.replace(tzinfo=None) if event_data.start_time.tzinfo else event_data.start_time
         if event_data.end_time is not None:
-            event.end_time = event_data.end_time
+            event.end_time = event_data.end_time.replace(tzinfo=None) if event_data.end_time.tzinfo else event_data.end_time
         if event_data.location is not None:
             event.location = event_data.location
         if event_data.attendees is not None:
