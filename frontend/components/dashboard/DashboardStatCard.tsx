@@ -6,22 +6,26 @@ import { cn } from '@/lib/utils';
 
 type Tone = 'primary' | 'blue' | 'green' | 'amber';
 
-const toneStyles: Record<Tone, { chip: string; iconWrap: string }> = {
+const toneStyles: Record<Tone, { chip: string; iconWrap: string; ring: string }> = {
   primary: {
     chip: 'border-primary-500/20 bg-primary-500/10 text-primary-200',
     iconWrap: 'bg-primary-500/10 text-primary-200 border-primary-500/20',
+    ring: 'text-primary-400 stroke-primary-500',
   },
   blue: {
     chip: 'border-blue-500/20 bg-blue-500/10 text-blue-200',
     iconWrap: 'bg-blue-500/10 text-blue-200 border-blue-500/20',
+    ring: 'text-blue-400 stroke-blue-500',
   },
   green: {
     chip: 'border-green-500/20 bg-green-500/10 text-green-200',
     iconWrap: 'bg-green-500/10 text-green-200 border-green-500/20',
+    ring: 'text-green-400 stroke-green-500',
   },
   amber: {
     chip: 'border-amber-500/20 bg-amber-500/10 text-amber-200',
     iconWrap: 'bg-amber-500/10 text-amber-200 border-amber-500/20',
+    ring: 'text-amber-400 stroke-amber-500',
   },
 };
 
@@ -32,6 +36,8 @@ type DashboardStatCardProps = {
   icon: React.ReactNode;
   tone?: Tone;
   className?: string;
+  progress?: number;
+  sparklineData?: number[];
 };
 
 export function DashboardStatCard({
@@ -41,6 +47,8 @@ export function DashboardStatCard({
   icon,
   tone = 'primary',
   className,
+  progress,
+  sparklineData,
 }: DashboardStatCardProps) {
   const styles = toneStyles[tone];
 
@@ -70,9 +78,55 @@ export function DashboardStatCard({
           </div>
         </div>
 
-        <div className="mt-auto">
-          <div className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">{value}</div>
-          <p className="mt-2 text-xs leading-5 text-white/60 sm:text-sm sm:leading-6">{subtitle}</p>
+        <div className="mt-auto flex items-end justify-between gap-4">
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">{value}</span>
+            </div>
+            <p className="mt-2 text-xs leading-5 text-white/60 sm:text-sm sm:leading-6">{subtitle}</p>
+          </div>
+          
+          {/* Progress Ring or Visuals */}
+          <div className="flex flex-col items-center justify-center shrink-0">
+            {progress !== undefined && (
+              <div className="relative flex h-14 w-14 items-center justify-center sm:h-16 sm:w-16">
+                <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 36 36">
+                  {/* Background Circle */}
+                  <path
+                    className="stroke-white/10"
+                    fill="none"
+                    strokeWidth="3"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  {/* Progress Circle - using dasharray to determine percentage drawn */}
+                  <path
+                    className={cn('transition-all duration-1000 ease-in-out', styles.ring)}
+                    fill="none"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    strokeDasharray={`${progress}, 100`}
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <div className="absolute flex flex-col items-center justify-center text-center">
+                  <span className="text-[10px] font-bold text-white sm:text-xs">{progress}%</span>
+                </div>
+              </div>
+            )}
+            
+            {/* Simple Sparkline Bars for Next Events (decorative to add visual weight) */}
+            {sparklineData && !progress && (
+              <div className="flex h-10 items-end gap-1 opacity-80 sm:h-12">
+                {sparklineData.map((val, i) => (
+                  <div
+                    key={i}
+                    className={cn("w-1.5 sm:w-2 rounded-t-sm bg-current", styles.ring)}
+                    style={{ height: `${Math.max(15, val)}%`, opacity: 0.4 + (i / sparklineData.length) * 0.6 }}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </Surface>

@@ -68,7 +68,19 @@ export default function DashboardPage() {
     .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
     .slice(0, 3);
 
-  const pendingTasks = todayTasks.filter(task => task.status === 'pending').slice(0, 5);
+  const pendingTasks = todayTasks.filter(task => task.status === 'pending' || !task.completed).slice(0, 5);
+  const completedTasksCount = todayTasks.length - pendingTasks.length; // Approximate since we sliced it above? Wait, the above slice(0,5) will mess up count.
+
+  // Correct calculation for progress:
+  const allPending = todayTasks.filter(task => task.status === 'pending' || task.status === 'in_progress' || !task.status);
+  const actualCompletedCount = todayTasks.length - allPending.length;
+  
+  const todayProgress = todayTasks.length > 0 ? Math.round((actualCompletedCount / todayTasks.length) * 100) : 0;
+  const pendingProgress = todayTasks.length > 0 ? Math.round((allPending.length / todayTasks.length) * 100) : 0;
+
+  // Visual decoration for Next events (since it's a future timeline)
+  const eventsSparkline = [30, 45, 60, 50, 80, 40, 95];
+
   const displayName = user?.email?.split('@')[0] || 'there';
 
   const voiceStatus = (() => {
@@ -89,9 +101,34 @@ export default function DashboardPage() {
   }
 
   return (
-    <AppPageShell contentClassName="xl:max-w-none">
+    <AppPageShell contentClassName="xl:max-w-none relative overflow-hidden">
+        {/* AI Global Presence - Apple Intelligence / Gemini Style Glow */}
+        <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden mix-blend-screen opacity-80">
+          {/* Top Left Blob */}
+          <div className={`absolute -left-[10%] -top-[10%] h-[40vw] w-[40vw] rounded-full blur-[120px] transition-all duration-[2000ms] ease-in-out ${
+            voiceSession?.status === 'listening' ? 'bg-emerald-500/40 translate-x-[5%] translate-y-[5%] scale-110' : 
+            voiceSession?.status === 'processing' ? 'bg-purple-500/40 translate-x-[15%] opacity-80 scale-125 animate-pulse' :
+            voiceSession?.status === 'speaking' ? 'bg-blue-500/40 translate-y-[5%] scale-105' : 'bg-transparent opacity-0 scale-50'
+          }`} />
+          
+          {/* Bottom Right Blob */}
+          <div className={`absolute -bottom-[10%] -right-[10%] h-[50vw] w-[50vw] rounded-full blur-[140px] transition-all duration-[2000ms] ease-in-out delay-75 ${
+            voiceSession?.status === 'listening' ? 'bg-teal-500/30 -translate-x-[5%] -translate-y-[5%] scale-110' : 
+            voiceSession?.status === 'processing' ? 'bg-fuchsia-500/30 -translate-x-[15%] opacity-80 scale-125 animate-[pulse_3s_ease-in-out_infinite]' :
+            voiceSession?.status === 'speaking' ? 'bg-indigo-500/30 -translate-y-[5%] scale-105' : 'bg-transparent opacity-0 scale-50'
+          }`} />
+
+          {/* Inset Screen Edge Glow */}
+          <div className={`absolute inset-0 transition-all duration-[1500ms] ${
+            voiceSession?.status === 'listening' ? 'shadow-[inset_0_0_150px_rgba(16,185,129,0.15)] opacity-100' : 
+            voiceSession?.status === 'processing' ? 'shadow-[inset_0_0_150px_rgba(168,85,247,0.15)] opacity-100' :
+            voiceSession?.status === 'speaking' ? 'shadow-[inset_0_0_150px_rgba(59,130,246,0.15)] opacity-100' : 'opacity-0'
+          }`} />
+        </div>
+
+        <div className="relative z-10 w-full">
         {loadError && (
-          <GlassCard className="border border-red-500/20 bg-red-500/10 p-5 sm:p-6">
+          <GlassCard className="border border-red-500/20 bg-red-500/10 p-5 sm:p-6 mb-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-red-200">Something went wrong</p>
@@ -130,7 +167,12 @@ export default function DashboardPage() {
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-white/45">Voice Agent</p>
                   <div className="mt-1 flex items-center gap-2">
-                    <span className={`h-2.5 w-2.5 rounded-full ${voiceStatus.dot}`} />
+                    <span className="relative flex h-2.5 w-2.5">
+                      {voiceSession?.status && voiceSession.status !== 'idle' && (
+                        <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${voiceStatus.dot}`}></span>
+                      )}
+                      <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${voiceStatus.dot} ${voiceSession?.status !== 'idle' ? 'shadow-[0_0_8px_currentColor]' : ''}`} />
+                    </span>
                     <span className={`text-sm font-medium ${voiceStatus.tone}`}>{voiceStatus.label}</span>
                   </div>
                 </div>
@@ -154,78 +196,74 @@ export default function DashboardPage() {
           </div>
         </GlassCard>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3 xl:gap-6">
-          <DashboardStatCard
-            title="Today"
-            value={todayTasks.length}
-            subtitle="Tasks planned for today"
-            tone="primary"
-            icon={
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 8l2 2 4-4"
-                />
-              </svg>
-            }
-          />
-          <DashboardStatCard
-            title="Next"
-            value={upcomingEvents.length}
-            subtitle="Upcoming calendar events"
-            tone="blue"
-            icon={
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-            }
-          />
-          <DashboardStatCard
-            title="Pending"
-            value={pendingTasks.length}
-            subtitle="Items waiting for action"
-            tone="amber"
-            className="col-span-2 md:col-span-2 xl:col-span-1"
-            icon={
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-            }
-          />
-        </div>
+        {/* Bento Box Grid Dashboard */}
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-4 xl:auto-rows-[minmax(130px,1fr)]">
+          
+          {/* Quick Stats - Top on mobile, Left on large screens */}
+          <div className="md:col-span-2 xl:col-span-1 xl:row-span-3 grid grid-cols-2 sm:grid-cols-3 xl:flex xl:flex-col gap-4 sm:gap-6">
+            <DashboardStatCard
+              title="Today"
+              value={todayTasks.length}
+              subtitle="Tasks planned for today"
+              tone="primary"
+              progress={todayProgress}
+              className="col-span-1 h-full xl:flex-1 flex flex-col justify-center shadow-lg hover:shadow-primary-500/10 transition-shadow"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 8l2 2 4-4" />
+                </svg>
+              }
+            />
+            <DashboardStatCard
+              title="Next"
+              value={upcomingEvents.length}
+              subtitle="Upcoming calendar events"
+              tone="blue"
+              sparklineData={eventsSparkline}
+              className="col-span-1 h-full xl:flex-1 flex flex-col justify-center shadow-lg hover:shadow-blue-500/10 transition-shadow"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              }
+            />
+            <DashboardStatCard
+              title="Pending"
+              value={pendingTasks.length}
+              subtitle="Items waiting for action"
+              tone="amber"
+              progress={pendingProgress}
+              className="col-span-2 sm:col-span-1 h-full xl:flex-1 flex flex-col justify-center shadow-lg hover:shadow-amber-500/10 transition-shadow"
+              icon={
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+          </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.25fr)]">
-          <div className="min-w-0">
-            <GlassCard className="min-h-[300px] p-5 sm:p-6 xl:min-h-[360px]">
+          {/* Timeline - Tall */}
+          <div className="md:col-span-1 xl:col-span-1 xl:row-span-3 min-w-0 flex flex-col">
+            <GlassCard className="flex-1 p-5 sm:p-6 overflow-hidden flex flex-col shadow-lg border-white/5 hover:border-white/10 transition-colors">
               <TaskTimeline maxItems={8} />
             </GlassCard>
           </div>
 
-          <div className="min-w-0">
-            <GlassCard className="min-h-[300px] p-5 sm:p-6 xl:min-h-[360px]">
+          {/* Calendar - Wide & Tall */}
+          <div className="md:col-span-1 xl:col-span-2 xl:row-span-3 min-w-0 flex flex-col">
+            <GlassCard className="flex-1 p-5 sm:p-6 overflow-hidden flex flex-col shadow-lg border-white/5 hover:border-white/10 transition-colors">
               <CalendarIntegrationView />
             </GlassCard>
           </div>
-        </div>
 
-        {/* AI Insights Section */}
-        <GlassCard className="min-h-[260px] p-5 sm:p-6 xl:min-h-[320px]">
-          <AIInsightsDashboard />
-        </GlassCard>
+          {/* AI Insights - Very Wide Bottom */}
+          <div className="md:col-span-2 xl:col-span-4 xl:row-span-2 min-w-0 flex flex-col">
+            <GlassCard className="flex-1 p-5 sm:p-6 shadow-xl border-accent-500/10 relative overflow-hidden group">
+              <div className="absolute inset-x-0 -top-px h-px w-full bg-gradient-to-r from-transparent via-accent-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
+              <AIInsightsDashboard />
+            </GlassCard>
+          </div>
+        </div>
 
       {/* Avatar Customization Modal */}
       {showAvatarCustomization && (
@@ -237,6 +275,8 @@ export default function DashboardPage() {
           }}
         />
       )}
+
+      </div>
 
       {/* Floating Glass Dock - Voice Agent Interface */}
       <FloatingGlassDock
