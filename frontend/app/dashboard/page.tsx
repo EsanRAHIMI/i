@@ -24,6 +24,24 @@ export default function DashboardPage() {
   const [todayTasks, setTodayTasks] = useState<any[]>([]);
   const [showAvatarCustomization, setShowAvatarCustomization] = useState(false);
   const [agentOpen, setAgentOpen] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime(new Intl.DateTimeFormat('en-US', {
+        weekday: 'long',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      }).format(now));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -96,6 +114,10 @@ export default function DashboardPage() {
     }
   })();
 
+  const currentHour = new Date().getHours();
+  const greetingText = currentHour < 12 ? 'Good morning' : currentHour < 18 ? 'Good afternoon' : 'Good evening';
+  const greetingIcon = currentHour < 12 ? '🌤️' : currentHour < 18 ? '☀️' : '🌙';
+
   if (isLoading) {
     return <DashboardSkeleton />;
   }
@@ -144,63 +166,146 @@ export default function DashboardPage() {
           </GlassCard>
         )}
 
-        {/* Header */}
-        <GlassCard className="overflow-hidden p-5 sm:p-7 xl:p-8">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-center xl:justify-between">
-            <div className="space-y-3">
-              <span className="inline-flex w-fit items-center rounded-full border border-primary-500/20 bg-primary-500/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.24em] text-primary-200">
-                Dashboard Overview
-              </span>
-              <div className="space-y-2">
-                <h1 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl xl:text-[2.8rem]">
-                  Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}, {displayName}
-                </h1>
-                <p className="max-w-2xl text-sm leading-6 text-white/60 sm:text-base">
-                  Keep track of your schedule, pending tasks, and AI recommendations from one calm control panel.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center xl:justify-end">
-              <div className="inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <VoiceActivityIndicator size="sm" showStatus={false} />
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-white/45">Voice Agent</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="relative flex h-2.5 w-2.5">
-                      {voiceSession?.status && voiceSession.status !== 'idle' && (
-                        <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${voiceStatus.dot}`}></span>
-                      )}
-                      <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${voiceStatus.dot} ${voiceSession?.status !== 'idle' ? 'shadow-[0_0_8px_currentColor]' : ''}`} />
-                    </span>
-                    <span className={`text-sm font-medium ${voiceStatus.tone}`}>{voiceStatus.label}</span>
-                  </div>
+        {/* Header (Responsive, compact on mobile) */}
+        <GlassCard className="overflow-hidden p-4 sm:p-6 xl:p-8">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            
+            {/* Left side: Greeting text and Mobile Avatar */}
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1 sm:space-y-3">
+                <div className="hidden sm:inline-flex items-center rounded-full border border-white/5 bg-black/20 p-1 pr-4 backdrop-blur-md shadow-inner">
+                  <span className="inline-flex items-center rounded-full bg-primary-500/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-primary-300">
+                    Dashboard
+                  </span>
+                  <span className="ml-3 text-[11px] font-medium text-white/45 tracking-wider flex items-center gap-1.5 opacity-80">
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {currentTime}
+                  </span>
+                </div>
+                <div className="space-y-1 sm:space-y-2">
+                  <h1 className="flex items-center gap-2 sm:gap-3 text-2xl font-semibold tracking-tight text-white sm:text-4xl xl:text-[2.8rem]">
+                    <span className="text-3xl sm:text-5xl">{greetingIcon}</span>
+                    <span className="truncate max-w-[200px] min-[400px]:max-w-[260px] sm:max-w-none">{greetingText}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-accent-400">{displayName}</span></span>
+                  </h1>
+                  <p className="hidden max-w-2xl text-xs leading-5 text-white/50 sm:block sm:text-sm sm:leading-6">
+                    Keep track of your schedule, pending tasks, and AI recommendations from one calm control panel.
+                  </p>
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 sm:flex-row">
+              {/* Mobile Avatar (Visible only < xl) */}
+              <div className="flex xl:hidden shrink-0 mt-1 sm:mt-0">
                 <button
                   onClick={() => setShowAvatarCustomization(true)}
-                  className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                  className="group relative h-10 w-10 sm:h-12 sm:w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/10 transition-all hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-bg shadow-lg hover:shadow-primary-500/30"
+                  title="Customize Avatar"
                 >
-                  Customize Avatar
+                  {user?.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img 
+                      src={user.avatar_url} 
+                       alt="User Avatar" 
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-500/20 to-accent-500/20 text-base sm:text-lg font-bold uppercase text-primary-200">
+                      {displayName.charAt(0)}
+                    </div>
+                  )}
+                  {/* Hover Edit Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+                    <svg className="h-4 w-4 sm:h-5 sm:w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </div>
                 </button>
-                <Link
-                  href="/tasks"
-                  className="inline-flex items-center justify-center rounded-2xl bg-primary-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+              </div>
+            </div>
+
+            {/* Right Side: Actions & Voice Agent Indicator */}
+            <div className="flex flex-row flex-nowrap items-center gap-2 sm:gap-3 xl:justify-end">
+              <div className="flex-1 sm:flex-none flex items-center justify-between sm:justify-start gap-3 rounded-xl sm:rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 sm:px-4 sm:py-3 overflow-hidden">
+                <div className="flex items-center gap-2 sm:gap-3">
+                  <VoiceActivityIndicator size="sm" showStatus={false} />
+                  <p className="text-[10px] sm:text-xs uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/45 hidden min-[360px]:block">Voice Agent</p>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 border-l border-white/10 pl-2 sm:pl-3 ml-auto">
+                  <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5">
+                    {voiceSession?.status && voiceSession.status !== 'idle' && (
+                      <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${voiceStatus.dot}`}></span>
+                    )}
+                    <span className={`relative inline-flex h-2 w-2 sm:h-2.5 sm:w-2.5 rounded-full ${voiceStatus.dot} ${voiceSession?.status !== 'idle' ? 'shadow-[0_0_8px_currentColor]' : ''}`} />
+                  </span>
+                  <span className={`text-[11px] sm:text-sm font-medium ${voiceStatus.tone}`}>{voiceStatus.label}</span>
+                </div>
+              </div>
+
+              <Link
+                href="/tasks"
+                className="inline-flex h-10 sm:h-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-primary-600 px-4 sm:px-5 text-xs sm:text-sm font-medium text-white transition-all hover:bg-primary-500 hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]"
+              >
+                Tasks
+              </Link>
+              
+              <button
+                onClick={() => setIsFocusMode(!isFocusMode)}
+                className={`inline-flex h-10 sm:h-12 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl border-2 px-3 sm:px-4 text-xs sm:text-sm font-medium transition-all focus:outline-none shadow-lg ${
+                  isFocusMode 
+                    ? 'border-accent-500 bg-accent-500 text-white shadow-accent-500/40 hover:bg-accent-600 hover:border-accent-600' 
+                    : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white'
+                }`}
+                title="Toggle Focus Mode"
+              >
+                <svg className="mr-0 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <circle cx="12" cy="12" r="6"></circle>
+                  <circle cx="12" cy="12" r="2"></circle>
+                </svg>
+                <span className="hidden sm:inline-block">{isFocusMode ? 'Exit Zen' : 'Zen Mode'}</span>
+              </button>
+              
+              {/* Desktop Avatar (Visible only >= xl) */}
+              <div className="hidden xl:flex shrink-0 ml-2">
+                <button
+                  onClick={() => setShowAvatarCustomization(true)}
+                  className="group relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-white/10 transition-all hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-bg shadow-lg hover:shadow-primary-500/30"
+                  title="Customize Avatar"
                 >
-                  Open Tasks
-                </Link>
+                  {user?.avatar_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img 
+                      src={user.avatar_url} 
+                       alt="User Avatar" 
+                      className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-500/20 to-accent-500/20 text-lg font-bold uppercase text-primary-200">
+                      {displayName.charAt(0)}
+                    </div>
+                  )}
+                  {/* Hover Edit Overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100">
+                    <svg className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </div>
+                </button>
               </div>
             </div>
           </div>
         </GlassCard>
 
         {/* Bento Box Grid Dashboard */}
-        <div className="mt-6 grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-4 xl:auto-rows-[minmax(130px,1fr)]">
+        <div className={`mt-6 grid gap-4 sm:gap-6 transition-all duration-700 ease-in-out relative ${
+          isFocusMode ? 'grid-cols-1 max-w-4xl mx-auto' : 'grid-cols-1 md:grid-cols-2 xl:grid-cols-4 xl:auto-rows-[minmax(130px,1fr)]'
+        }`}>
           
           {/* Quick Stats - Top on mobile, Left on large screens */}
-          <div className="md:col-span-2 xl:col-span-1 xl:row-span-3 grid grid-cols-2 sm:grid-cols-3 xl:flex xl:flex-col gap-4 sm:gap-6">
+          <div className={`grid grid-cols-2 sm:grid-cols-3 xl:flex xl:flex-col gap-4 sm:gap-6 transition-all duration-500 ease-in-out origin-top ${
+            isFocusMode ? 'opacity-0 scale-95 pointer-events-none absolute -z-10 w-0 h-0 overflow-hidden' : 'md:col-span-2 xl:col-span-1 xl:row-span-3 opacity-100 scale-100 relative z-10'
+          }`}>
             <DashboardStatCard
               title="Today"
               value={todayTasks.length}
@@ -243,21 +348,40 @@ export default function DashboardPage() {
           </div>
 
           {/* Timeline - Tall */}
-          <div className="md:col-span-1 xl:col-span-1 xl:row-span-3 min-w-0 flex flex-col">
-            <GlassCard className="flex-1 p-5 sm:p-6 overflow-hidden flex flex-col shadow-lg border-white/5 hover:border-white/10 transition-colors">
-              <TaskTimeline maxItems={8} />
+          <div className={`min-w-0 flex flex-col transition-all duration-700 ease-in-out ${
+            isFocusMode ? 'col-span-1 h-[75vh] min-h-[500px]' : 'md:col-span-1 xl:col-span-1 xl:row-span-3'
+          }`}>
+            <GlassCard className={`flex-1 p-5 sm:p-6 overflow-hidden flex flex-col shadow-lg transition-all duration-700 ${
+              isFocusMode ? 'border-accent-500/40 ring-1 ring-accent-500/20 shadow-[0_0_30px_rgba(34,211,238,0.15)] bg-slate-900/40' : 'border-white/5 hover:border-white/10'
+            }`}>
+              {isFocusMode && (
+                <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-accent-500"></span>
+                    </span>
+                    <span className="text-sm font-bold uppercase tracking-widest text-accent-400">Deep Work Mode Activated</span>
+                  </div>
+                </div>
+              )}
+              <TaskTimeline maxItems={isFocusMode ? 15 : 8} />
             </GlassCard>
           </div>
 
           {/* Calendar - Wide & Tall */}
-          <div className="md:col-span-1 xl:col-span-2 xl:row-span-3 min-w-0 flex flex-col">
+          <div className={`min-w-0 flex flex-col transition-all duration-500 ease-in-out origin-center ${
+            isFocusMode ? 'opacity-0 scale-95 pointer-events-none absolute -z-10 w-0 h-0 overflow-hidden' : 'md:col-span-1 xl:col-span-2 xl:row-span-3 opacity-100 scale-100 relative z-10'
+          }`}>
             <GlassCard className="flex-1 p-5 sm:p-6 overflow-hidden flex flex-col shadow-lg border-white/5 hover:border-white/10 transition-colors">
               <CalendarIntegrationView />
             </GlassCard>
           </div>
 
           {/* AI Insights - Very Wide Bottom */}
-          <div className="md:col-span-2 xl:col-span-4 xl:row-span-2 min-w-0 flex flex-col">
+          <div className={`min-w-0 flex flex-col transition-all duration-500 ease-in-out origin-bottom ${
+            isFocusMode ? 'opacity-0 scale-95 pointer-events-none absolute -z-10 w-0 h-0 overflow-hidden text-transparent' : 'md:col-span-2 xl:col-span-4 xl:row-span-2 opacity-100 scale-100 relative z-10'
+          }`}>
             <GlassCard className="flex-1 p-5 sm:p-6 shadow-xl border-accent-500/10 relative overflow-hidden group">
               <div className="absolute inset-x-0 -top-px h-px w-full bg-gradient-to-r from-transparent via-accent-500/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000"></div>
               <AIInsightsDashboard />

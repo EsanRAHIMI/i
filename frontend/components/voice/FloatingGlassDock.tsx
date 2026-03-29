@@ -400,11 +400,15 @@ export default function FloatingGlassDock({
             }
             className={`
               relative grid h-[3.5rem] w-[3.5rem] place-items-center rounded-full border transition-all duration-200 sm:h-16 sm:w-16 xl:h-20 xl:w-20 xl:-translate-y-3
-              ${isStreaming 
-                ? 'border-red-400/50 bg-red-500/30 shadow-[0_18px_60px_rgba(239,68,68,0.35)] hover:bg-red-500/40' 
-                : open 
-                  ? 'border-(--glass-border) bg-[color:var(--glass-thick)] shadow-[0_18px_60px_rgba(0,0,0,0.45)] hover:bg-[color:var(--glass-ultraThick)]'
-                  : 'border-(--glass-border) bg-[color:var(--glass-thick)] shadow-[0_18px_60px_rgba(0,0,0,0.45)] hover:bg-[color:var(--glass-ultraThick)]'
+              ${(isStreaming || voiceSession?.status === 'listening') 
+                ? 'border-emerald-500/50 bg-emerald-500/30 shadow-[0_18px_60px_rgba(16,185,129,0.4)] hover:bg-emerald-500/40' 
+                : voiceSession?.status === 'processing'
+                  ? 'border-purple-500/50 bg-purple-500/30 shadow-[0_18px_60px_rgba(168,85,247,0.4)] hover:bg-purple-500/40'
+                  : voiceSession?.status === 'speaking'
+                    ? 'border-blue-500/50 bg-blue-500/30 shadow-[0_18px_60px_rgba(59,130,246,0.4)] hover:bg-blue-500/40'
+                    : open
+                      ? 'border-white/20 bg-white/10 shadow-[0_18px_60px_rgba(0,0,0,0.45)] hover:bg-white/20'
+                      : 'border-white/10 bg-black/40 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-md hover:bg-white/10 hover:border-white/20'
               }
               ${open && !isConnected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
@@ -412,24 +416,35 @@ export default function FloatingGlassDock({
           >
             {/* halo / pulse when streaming */}
             <AnimatePresence>
-              {isStreaming && (
-                <motion.span
-                  className="absolute inset-0 rounded-full"
-                  initial={{ boxShadow: "0 0 0 0 rgba(239,68,68,0.45)" }}
-                  animate={{ boxShadow: [
-                    "0 0 0 0 rgba(239,68,68,0.35)",
-                    "0 0 0 14px rgba(239,68,68,0.0)",
-                  ]}}
-                  transition={{ duration: 1.6, repeat: Infinity }}
-                />
-              )}
-              {open && !isStreaming && voiceSession?.status === 'listening' && (
+              {(isStreaming || voiceSession?.status === 'listening') && (
                 <motion.span
                   className="absolute inset-0 rounded-full"
                   initial={{ boxShadow: "0 0 0 0 rgba(16,185,129,0.45)" }}
                   animate={{ boxShadow: [
                     "0 0 0 0 rgba(16,185,129,0.35)",
                     "0 0 0 14px rgba(16,185,129,0.0)",
+                  ]}}
+                  transition={{ duration: 1.6, repeat: Infinity }}
+                />
+              )}
+              {voiceSession?.status === 'processing' && (
+                <motion.span
+                  className="absolute inset-0 rounded-full"
+                  initial={{ boxShadow: "0 0 0 0 rgba(168,85,247,0.45)" }}
+                  animate={{ boxShadow: [
+                    "0 0 0 0 rgba(168,85,247,0.45)",
+                    "0 0 0 16px rgba(168,85,247,0.0)",
+                  ]}}
+                  transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+                />
+              )}
+              {voiceSession?.status === 'speaking' && (
+                <motion.span
+                  className="absolute inset-0 rounded-full"
+                  initial={{ boxShadow: "0 0 0 0 rgba(59,130,246,0.45)" }}
+                  animate={{ boxShadow: [
+                    "0 0 0 0 rgba(59,130,246,0.35)",
+                    "0 0 0 14px rgba(59,130,246,0.0)",
                   ]}}
                   transition={{ duration: 1.6, repeat: Infinity }}
                 />
@@ -500,13 +515,13 @@ function GlassButton({
       title={tooltip}
       onClick={onClick}
       className={`
-        grid h-(--tap-target) w-(--tap-target) place-items-center
-        rounded-control border border-(--glass-border)
-        bg-[color:var(--glass-thin)] text-sm text-white/85
-        shadow-(--glass-shadow-soft)
-        transition-colors
-        hover:bg-[color:var(--glass-regular)]
-        active:bg-[color:var(--glass-thick)]
+        grid h-12 w-12 sm:h-14 sm:w-14 place-items-center
+        rounded-2xl border border-white/10
+        bg-black/20 text-white/80
+        shadow-lg backdrop-blur-md
+        transition-all
+        hover:bg-white/10 hover:text-white hover:border-white/20
+        active:scale-95
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/50
       `}
     >
@@ -566,7 +581,12 @@ function AgentGeniePopup({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 22 }}
           >
-            <div className="mx-auto h-full w-full max-w-[620px] bg-[radial-gradient(ellipse_at_bottom,rgba(16,185,129,0.35),rgba(0,0,0,0)_60%)]" />
+            <div className={`mx-auto h-full w-full max-w-[620px] transition-colors duration-1000 ${
+              isStreaming || voiceSession?.status === 'listening' ? 'bg-[radial-gradient(ellipse_at_bottom,rgba(16,185,129,0.35),rgba(0,0,0,0)_60%)]' :
+              voiceSession?.status === 'processing' ? 'bg-[radial-gradient(ellipse_at_bottom,rgba(168,85,247,0.35),rgba(0,0,0,0)_60%)] animate-pulse' :
+              voiceSession?.status === 'speaking' ? 'bg-[radial-gradient(ellipse_at_bottom,rgba(59,130,246,0.35),rgba(0,0,0,0)_60%)]' :
+              'bg-[radial-gradient(ellipse_at_bottom,rgba(255,255,255,0.1),rgba(0,0,0,0)_60%)]'
+            }`} />
           </motion.div>
 
           {/* 3D Avatar - positioned above the card, breaking out of frame */}
@@ -594,7 +614,12 @@ function AgentGeniePopup({
             exit={{ y: 20, scale: 0.98, opacity: 0 }}
             transition={{ type: "spring", stiffness: 220, damping: 26 }}
           >
-            <div className="relative overflow-visible rounded-3xl border border-white/15 bg-gradient-to-b from-white/15 to-white/5 p-4 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-2xl dark:border-white/10 dark:from-white/10 dark:to-white/5">
+            <div className={`relative overflow-visible rounded-3xl border transition-all duration-700 p-4 shadow-[0_30px_80px_rgba(0,0,0,0.45)] backdrop-blur-3xl ${
+              isStreaming || voiceSession?.status === 'listening' ? 'border-emerald-500/30 bg-gradient-to-b from-emerald-500/10 to-black/60 shadow-emerald-500/10' :
+              voiceSession?.status === 'processing' ? 'border-purple-500/40 bg-gradient-to-b from-purple-500/10 to-black/60 shadow-purple-500/20' :
+              voiceSession?.status === 'speaking' ? 'border-blue-500/30 bg-gradient-to-b from-blue-500/10 to-black/60 shadow-blue-500/10' :
+              'border-white/10 bg-gradient-to-b from-white/10 to-black/60'
+            }`}>
               <button
                 onClick={onClose}
                 aria-label="Close agent"
@@ -668,7 +693,7 @@ function AgentGeniePopup({
                     ].map((t) => (
                       <button 
                         key={t} 
-                        className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs hover:bg-white/20 transition-colors"
+                        className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-white/80 hover:bg-white/15 hover:text-white hover:border-white/20 hover:scale-105 transition-all shadow-sm"
                         onClick={() => {
                           // Handle quick action click
                           logger.debug('Quick action triggered:', t);
