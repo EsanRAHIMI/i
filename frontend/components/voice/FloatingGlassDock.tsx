@@ -133,6 +133,9 @@ export default function FloatingGlassDock({
   // Initialize audio context and analyser
   const initAudioContext = useCallback(async () => {
     try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('navigator.mediaDevices is undefined (Requires HTTPS or localhost)');
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           sampleRate: 16000,
@@ -235,10 +238,16 @@ export default function FloatingGlassDock({
       // Start audio level monitoring
       monitorAudioLevel();
 
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Failed to start streaming:', error);
       setIsStreaming(false);
       updateVoiceSession({ status: 'idle' });
+      const errMsg = error.message || String(error);
+      if (errMsg.includes('mediaDevices') || errMsg.includes('getUserMedia')) {
+        setPartialTranscript('Microphone access denied or context not secure (HTTPS required).');
+      } else {
+        setPartialTranscript('Error accessing microphone: ' + errMsg);
+      }
     }
   }, [connect, isConnected, initAudioContext, sendVoiceStart, sendVoiceData, monitorAudioLevel, setVoiceSession, updateVoiceSession]);
 
@@ -635,15 +644,15 @@ function AgentGeniePopup({
                 </div>
 
                 {/* Connection Status */}
-                {!isConnected && (
-                  <div className="flex items-center justify-center space-x-2 text-xs text-yellow-400">
-                    <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-                    <span>
+                {!isConnected && !partialTranscript?.includes('Microphone access') && !partialTranscript?.includes('Error accessing') && (
+                  <div className="flex items-center justify-center space-x-2 text-xs text-yellow-500 bg-yellow-500/10 py-1.5 px-3 rounded-full border border-yellow-500/20 w-fit mx-auto">
+                    <div className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                    <span className="font-medium tracking-wide">
                       {connectionState === 'connecting' 
-                        ? 'Connecting...' 
+                        ? 'Connecting to AI Module...' 
                         : connectionState === 'error'
-                          ? 'Connection Error'
-                          : 'Waiting for connection'}
+                          ? 'Connection Error (WS API)'
+                          : 'Waiting for connection...'}
                     </span>
                   </div>
                 )}
@@ -721,10 +730,12 @@ function CanvasIfClient({ children }: { children: React.ReactNode }) {
     <Canvas 
       shadows 
       camera={{ position: [0, 0.3, 1.8], fov: 55 }}
-      gl={{ alpha: true, antialias: true, preserveDrawingBuffer: true }}
+      gl={{ alpha: true, antialias: true, preserveDrawingBuffer: true, powerPreference: "high-performance" }}
       style={{ background: 'transparent' }}
     >
-      {children}
+      <React.Suspense fallback={null}>
+        {children}
+      </React.Suspense>
     </Canvas>
   );
 }

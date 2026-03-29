@@ -93,12 +93,17 @@ function createSessionId(): string {
 export function useWebSocket(options: UseWebSocketOptions = {}) {
   const [sessionId] = useState(createSessionId);
 
-  // ✅ تنظیم URL پیش‌فرض
   const wsUrl = process.env.NEXT_PUBLIC_WS_URL;
   const defaultWsUrl = useMemo(() => {
+    let resolvedUrl = wsUrl;
+    // Auto-resolve localhost to actual hostname for mobile/LAN testing
+    if (typeof window !== 'undefined' && resolvedUrl?.includes('localhost')) {
+      resolvedUrl = resolvedUrl.replace('localhost', window.location.hostname);
+    }
+    
     return (
-      normalizeVoiceWsUrl(wsUrl, sessionId) ||
-      `ws://localhost:8000/api/v1/voice/stream/${sessionId}`
+      normalizeVoiceWsUrl(resolvedUrl, sessionId) ||
+      `ws://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:8000/api/v1/voice/stream/${sessionId}`
     );
   }, [sessionId, wsUrl]);
   

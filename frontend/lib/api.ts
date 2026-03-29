@@ -6,20 +6,28 @@ export class ApiClient {
   private authClient: AxiosInstance;
 
   constructor() {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    let apiUrl = process.env.NEXT_PUBLIC_API_URL;
     if (!apiUrl) {
       const errorMsg = 'NEXT_PUBLIC_API_URL environment variable is not set. Please create a .env.local file in the frontend directory with NEXT_PUBLIC_API_URL=http://localhost:8000';
       console.error(errorMsg);
       throw new Error(errorMsg);
     }
 
-    const authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || '';
-    if (!authApiUrl) {
-      // Don't crash the entire app at runtime if this is missing.
-      // This allows public pages (/, /privacy, /terms) to render while deployment is being configured.
-      // Auth calls will still fail until this env var is set correctly.
+    let authApiUrl = process.env.NEXT_PUBLIC_AUTH_API_URL || 'http://localhost:8001';
+    
+    // Dynamically replace localhost with actual hostname for mobile/LAN testing
+    if (typeof window !== 'undefined') {
+      if (apiUrl.includes('localhost')) {
+        apiUrl = apiUrl.replace('localhost', window.location.hostname);
+      }
+      if (authApiUrl.includes('localhost')) {
+        authApiUrl = authApiUrl.replace('localhost', window.location.hostname);
+      }
+    }
+    
+    if (!process.env.NEXT_PUBLIC_AUTH_API_URL) {
       console.error(
-        'NEXT_PUBLIC_AUTH_API_URL environment variable is not set. Set it in your deployment environment (runtime env) to enable auth endpoints.'
+        'NEXT_PUBLIC_AUTH_API_URL environment variable is not set. Using fallback for local dev.'
       );
     }
     
@@ -32,8 +40,7 @@ export class ApiClient {
     });
 
     this.authClient = axios.create({
-      // Fallback keeps the server running; real deployments must provide NEXT_PUBLIC_AUTH_API_URL.
-      baseURL: authApiUrl || 'http://localhost:8001',
+      baseURL: authApiUrl,
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
