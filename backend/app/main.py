@@ -80,8 +80,8 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 60)
     
     # Create database tables
-    models.Base.metadata.create_all(bind=engine)
-    logger.info("✅ Database tables created/verified")
+    # models.Base.metadata.create_all(bind=engine)
+    # logger.info("✅ Database tables created/verified")
     
     yield
     

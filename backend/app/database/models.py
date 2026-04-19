@@ -1,275 +1,207 @@
 """
-SQLAlchemy ORM models for the Ai Department system.
+Modernized Database models for the core AI service. 
+Optimized for scalability, search performance, and AI-driven insights.
 """
+import uuid
 from sqlalchemy import (
     Column, String, Text, Integer, Boolean, TIMESTAMP, 
-    ForeignKey, UniqueConstraint, DECIMAL, JSON
+    ForeignKey, UniqueConstraint, DECIMAL, JSON, Enum, Index
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB, INET
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
-import uuid
-import os
+import enum
 
 from .base import Base
 
-# Use appropriate types for SQLite (testing) vs PostgreSQL (production)
-is_sqlite = os.getenv("DATABASE_URL", "").startswith("sqlite")
-JSONType = JSON if is_sqlite else JSONB
-UUIDType = String(36) if is_sqlite else UUID(as_uuid=True)
-INETType = String(45) if is_sqlite else INET
+class PriorityEnum(enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
 
-# UUID default function that returns string for SQLite, UUID for PostgreSQL
-def uuid_default():
-    return str(uuid.uuid4()) if is_sqlite else uuid.uuid4()
+class StatusEnum(enum.Enum):
+    PENDING = "pending"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    ARCHIVED = "archived"
 
+class TimestampMixin:
+    """Timestamps mixin for consistency."""
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True)
+    updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
 
-class User(Base):
-    """User model for storing user account information."""
+class User(Base, TimestampMixin):
+    """
+    Local User representation. 
+    Synchronized with Auth Service via UUID.
+    """
     __tablename__ = "users"
 
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
+    id = Column(UUID(as_uuid=True), primary_key=True)  # Matches ID from Auth Service
     email = Column(String(255), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255), nullable=False)
-    avatar_url = Column(Text, nullable=True)
-    timezone = Column(String(50), default="UTC")
-    language_preference = Column(String(10), default="en-US")
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    
+    # Global AI preferences for this user
+    ai_settings = Column(JSONB, default={
+        "voice_enabled": True,
+        "auto_task_creation": True,
+        "privacy_level": "standard"
+    })
 
     # Relationships
-    settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
     calendars = relationship("Calendar", back_populates="user", cascade="all, delete-orphan")
     events = relationship("Event", back_populates="user", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="user", cascade="all, delete-orphan")
     whatsapp_threads = relationship("WhatsAppThread", back_populates="user", cascade="all, delete-orphan")
-    client_updates = relationship("ClientUpdate", back_populates="user", cascade="all, delete-orphan")
-    consents = relationship("Consent", back_populates="user", cascade="all, delete-orphan")
     audit_logs = relationship("AuditLog", back_populates="user")
-
+    
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email})>"
 
-
-class UserSettings(Base):
-    """User settings and preferences."""
-    __tablename__ = "user_settings"
-
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    whatsapp_opt_in = Column(Boolean, default=False)
-    voice_training_consent = Column(Boolean, default=False)
-    calendar_sync_enabled = Column(Boolean, default=False)
-    privacy_level = Column(String(20), default="standard")
-    notification_preferences = Column(JSONType, default={})
-
-    # Relationships
-    user = relationship("User", back_populates="settings")
-
-    def __repr__(self):
-        return f"<UserSettings(user_id={self.user_id}, privacy_level={self.privacy_level})>"
-
-
-class Calendar(Base):
-    """Calendar integration information."""
+class Calendar(Base, TimestampMixin):
+    """Integrated calendars (Google, Outlook, etc.)."""
     __tablename__ = "calendars"
 
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    google_calendar_id = Column(String(255))
-    access_token_encrypted = Column(Text)
-    refresh_token_encrypted = Column(Text)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    provider = Column(String(50), default="google", index=True)
+    provider_calendar_id = Column(String(255), index=True)
+    
+    # Encrypted tokens and sync state
+    access_token_enc = Column(Text)
+    refresh_token_enc = Column(Text)
     sync_token = Column(String(255))
-    last_sync_at = Column(TIMESTAMP)
-    webhook_id = Column(String(255))
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-
+    last_sync_at = Column(TIMESTAMP(timezone=True))
+    
     # Relationships
     user = relationship("User", back_populates="calendars")
-    events = relationship("Event", back_populates="calendar")
+    events = relationship("Event", back_populates="calendar", cascade="all, delete-orphan")
 
-    def __repr__(self):
-        return f"<Calendar(id={self.id}, user_id={self.user_id}, google_calendar_id={self.google_calendar_id})>"
-
-
-class Event(Base):
-    """Calendar events."""
+class Event(Base, TimestampMixin):
+    """Calendar events with AI-enhanced context."""
     __tablename__ = "events"
 
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    calendar_id = Column(UUIDType, ForeignKey("calendars.id"), nullable=True, index=True)
-    google_event_id = Column(String(255))
-    title = Column(String(500), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    calendar_id = Column(UUID(as_uuid=True), ForeignKey("calendars.id", ondelete="CASCADE"), nullable=True, index=True)
+    
+    external_event_id = Column(String(255), index=True)
+    title = Column(String(500), nullable=False, index=True)
     description = Column(Text)
-    start_time = Column(TIMESTAMP, nullable=False, index=True)
-    end_time = Column(TIMESTAMP, nullable=False)
+    
+    start_time = Column(TIMESTAMP(timezone=True), nullable=False, index=True)
+    end_time = Column(TIMESTAMP(timezone=True), nullable=False, index=True)
+    
     location = Column(Text)
-    attendees = Column(JSONType, default=[])
-    ai_generated = Column(Boolean, default=False)
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-
+    attendees = Column(JSONB, default=[])
+    
+    # AI Metadata (Summaries, suggested actions, etc.)
+    ai_context = Column(JSONB, default={})
+    is_ai_generated = Column(Boolean, default=False, index=True)
+    
     # Relationships
     user = relationship("User", back_populates="events")
     calendar = relationship("Calendar", back_populates="events")
 
-    def __repr__(self):
-        return f"<Event(id={self.id}, title={self.title}, start_time={self.start_time})>"
-
-
-class Task(Base):
-    """AI-generated and user tasks."""
+class Task(Base, TimestampMixin):
+    """Smart tasks with priority and status management."""
     __tablename__ = "tasks"
 
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    title = Column(String(500), nullable=False)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    title = Column(String(500), nullable=False, index=True)
     description = Column(Text)
-    priority = Column(Integer, default=3)
-    status = Column(String(20), default="pending", index=True)
-    due_date = Column(TIMESTAMP)
-    context_data = Column(JSONType, default={})
-    created_by_ai = Column(Boolean, default=True)
-    created_at = Column(TIMESTAMP, server_default=func.now())
-    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
-
+    
+    priority = Column(Enum(PriorityEnum), default=PriorityEnum.MEDIUM, index=True)
+    status = Column(Enum(StatusEnum), default=StatusEnum.PENDING, index=True)
+    
+    due_date = Column(TIMESTAMP(timezone=True), index=True)
+    completed_at = Column(TIMESTAMP(timezone=True))
+    
+    tags = Column(JSONB, default=[])
+    ai_suggestions = Column(JSONB, default={})
+    
     # Relationships
     user = relationship("User", back_populates="tasks")
 
-    def __repr__(self):
-        return f"<Task(id={self.id}, title={self.title}, status={self.status})>"
-
-
-class WhatsAppThread(Base):
-    """WhatsApp conversation threads."""
+class WhatsAppThread(Base, TimestampMixin):
+    """Conversations via WhatsApp."""
     __tablename__ = "whatsapp_threads"
 
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     phone_number = Column(String(20), nullable=False, index=True)
-    thread_status = Column(String(20), default="active")
-    last_message_at = Column(TIMESTAMP, server_default=func.now())
-
+    
+    status = Column(String(20), default="active", index=True)
+    last_message_at = Column(TIMESTAMP(timezone=True), index=True)
+    
     # Relationships
     user = relationship("User", back_populates="whatsapp_threads")
     messages = relationship("WhatsAppMessage", back_populates="thread", cascade="all, delete-orphan")
 
-    def __repr__(self):
-        return f"<WhatsAppThread(id={self.id}, user_id={self.user_id}, phone_number={self.phone_number})>"
-
-
 class WhatsAppMessage(Base):
-    """Individual WhatsApp messages."""
+    """Individual messages within a thread."""
     __tablename__ = "whatsapp_messages"
 
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
-    thread_id = Column(UUIDType, ForeignKey("whatsapp_threads.id", ondelete="CASCADE"), nullable=False, index=True)
-    message_id = Column(String(255), unique=True)
-    direction = Column(String(10), nullable=False)  # 'inbound' or 'outbound'
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    thread_id = Column(UUID(as_uuid=True), ForeignKey("whatsapp_threads.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    external_msg_id = Column(String(255), unique=True, index=True)
+    direction = Column(String(10), nullable=False, index=True)  # 'inbound' or 'outbound'
     content = Column(Text, nullable=False)
-    message_type = Column(String(20), default="text")
-    status = Column(String(20), default="sent")
-    sent_at = Column(TIMESTAMP, server_default=func.now(), index=True)
-
+    msg_type = Column(String(20), default="text") # text, image, audio, etc.
+    
+    status = Column(String(20), default="sent") # sent, delivered, read, failed
+    sent_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True)
+    
     # Relationships
     thread = relationship("WhatsAppThread", back_populates="messages")
 
-    def __repr__(self):
-        return f"<WhatsAppMessage(id={self.id}, direction={self.direction}, status={self.status})>"
-
-
-class FederatedRound(Base):
-    """Federated learning training rounds."""
+class FederatedRound(Base, TimestampMixin):
+    """Federated Learning rounds tracking."""
     __tablename__ = "federated_rounds"
 
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
-    round_number = Column(Integer, nullable=False)
-    model_version = Column(String(50), nullable=False)
-    aggregation_status = Column(String(20), default="in_progress")
-    participant_count = Column(Integer, default=0)
-    started_at = Column(TIMESTAMP, server_default=func.now())
-    completed_at = Column(TIMESTAMP)
-
-    # Relationships
-    client_updates = relationship("ClientUpdate", back_populates="round", cascade="all, delete-orphan")
-
-    def __repr__(self):
-        return f"<FederatedRound(id={self.id}, round_number={self.round_number}, status={self.aggregation_status})>"
-
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    round_number = Column(Integer, nullable=False, index=True)
+    model_version = Column(String(50), nullable=False, index=True)
+    
+    status = Column(String(20), default="in_progress", index=True)
+    metrics = Column(JSONB, default={})
+    
+    completed_at = Column(TIMESTAMP(timezone=True))
 
 class ClientUpdate(Base):
-    """Client model updates for federated learning."""
+    """Individual client updates for Federated Learning."""
     __tablename__ = "client_updates"
 
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    round_id = Column(UUIDType, ForeignKey("federated_rounds.id", ondelete="CASCADE"), nullable=False)
-    model_delta_encrypted = Column(Text, nullable=False)
-    privacy_budget_used = Column(DECIMAL(precision=10, scale=8))
-    uploaded_at = Column(TIMESTAMP, server_default=func.now())
-
-    # Relationships
-    user = relationship("User", back_populates="client_updates")
-    round = relationship("FederatedRound", back_populates="client_updates")
-
-    def __repr__(self):
-        return f"<ClientUpdate(id={self.id}, user_id={self.user_id}, round_id={self.round_id})>"
-
-
-class Consent(Base):
-    """User consent tracking for GDPR and privacy compliance."""
-    __tablename__ = "consents"
-
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    consent_type = Column(String(50), nullable=False)
-    granted = Column(Boolean, nullable=False)
-    consent_text = Column(Text, nullable=False)
-    granted_at = Column(TIMESTAMP, server_default=func.now())
-    revoked_at = Column(TIMESTAMP)
-
-    # Relationships
-    user = relationship("User", back_populates="consents")
-
-    def __repr__(self):
-        return f"<Consent(id={self.id}, user_id={self.user_id}, consent_type={self.consent_type}, granted={self.granted})>"
-
-
-class PasswordResetToken(Base):
-    """Password reset tokens (hashed) for one-time password reset flow."""
-    __tablename__ = "password_reset_tokens"
-
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    token_hash = Column(String(64), nullable=False, unique=True, index=True)
-    expires_at = Column(TIMESTAMP, nullable=False, index=True)
-    used_at = Column(TIMESTAMP, nullable=True)
-    created_at = Column(TIMESTAMP, server_default=func.now())
-
-    user = relationship("User")
-
-    def __repr__(self):
-        return f"<PasswordResetToken(id={self.id}, user_id={self.user_id}, expires_at={self.expires_at}, used={self.used_at is not None})>"
-
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    round_id = Column(UUID(as_uuid=True), ForeignKey("federated_rounds.id", ondelete="CASCADE"), nullable=False, index=True)
+    
+    delta_location = Column(Text, nullable=False) # Path to the encrypted delta file
+    privacy_budget = Column(DECIMAL(10, 8))
+    uploaded_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True)
 
 class AuditLog(Base):
-    """Audit logs for security and compliance tracking."""
+    """Comprehensive audit logs for security and debugging."""
     __tablename__ = "audit_logs"
 
-    id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id"), nullable=True, index=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True, index=True)
+    
     action = Column(String(100), nullable=False, index=True)
-    resource_type = Column(String(50))
-    resource_id = Column(UUIDType)
-    details = Column(JSONType, default={})
-    ip_address = Column(INETType)
+    resource = Column(String(50), index=True)
+    resource_id = Column(UUID(as_uuid=True))
+    
+    details = Column(JSONB, default={})
+    ip_address = Column(INET)
     user_agent = Column(Text)
-    correlation_id = Column(UUIDType)
-    created_at = Column(TIMESTAMP, server_default=func.now(), index=True)
+    correlation_id = Column(UUID(as_uuid=True), index=True)
+    
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), index=True)
 
     # Relationships
     user = relationship("User", back_populates="audit_logs")
-
-    def __repr__(self):
-        return f"<AuditLog(id={self.id}, action={self.action}, user_id={self.user_id})>"
