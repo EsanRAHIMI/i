@@ -74,7 +74,7 @@ class Calendar(Base):
     __tablename__ = "calendars"
 
     id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     google_calendar_id = Column(String(255))
     access_token_encrypted = Column(Text)
     refresh_token_encrypted = Column(Text)
@@ -97,12 +97,12 @@ class Event(Base):
     __tablename__ = "events"
 
     id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    calendar_id = Column(UUIDType, ForeignKey("calendars.id"), nullable=True)
+    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    calendar_id = Column(UUIDType, ForeignKey("calendars.id"), nullable=True, index=True)
     google_event_id = Column(String(255))
     title = Column(String(500), nullable=False)
     description = Column(Text)
-    start_time = Column(TIMESTAMP, nullable=False)
+    start_time = Column(TIMESTAMP, nullable=False, index=True)
     end_time = Column(TIMESTAMP, nullable=False)
     location = Column(Text)
     attendees = Column(JSONType, default=[])
@@ -123,11 +123,11 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String(500), nullable=False)
     description = Column(Text)
     priority = Column(Integer, default=3)
-    status = Column(String(20), default="pending")
+    status = Column(String(20), default="pending", index=True)
     due_date = Column(TIMESTAMP)
     context_data = Column(JSONType, default={})
     created_by_ai = Column(Boolean, default=True)
@@ -146,8 +146,8 @@ class WhatsAppThread(Base):
     __tablename__ = "whatsapp_threads"
 
     id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    phone_number = Column(String(20), nullable=False)
+    user_id = Column(UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    phone_number = Column(String(20), nullable=False, index=True)
     thread_status = Column(String(20), default="active")
     last_message_at = Column(TIMESTAMP, server_default=func.now())
 
@@ -164,13 +164,13 @@ class WhatsAppMessage(Base):
     __tablename__ = "whatsapp_messages"
 
     id = Column(UUIDType, primary_key=True, default=uuid_default)
-    thread_id = Column(UUIDType, ForeignKey("whatsapp_threads.id", ondelete="CASCADE"), nullable=False)
+    thread_id = Column(UUIDType, ForeignKey("whatsapp_threads.id", ondelete="CASCADE"), nullable=False, index=True)
     message_id = Column(String(255), unique=True)
     direction = Column(String(10), nullable=False)  # 'inbound' or 'outbound'
     content = Column(Text, nullable=False)
     message_type = Column(String(20), default="text")
     status = Column(String(20), default="sent")
-    sent_at = Column(TIMESTAMP, server_default=func.now())
+    sent_at = Column(TIMESTAMP, server_default=func.now(), index=True)
 
     # Relationships
     thread = relationship("WhatsAppThread", back_populates="messages")
@@ -258,15 +258,15 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(UUIDType, primary_key=True, default=uuid_default)
-    user_id = Column(UUIDType, ForeignKey("users.id"), nullable=True)
-    action = Column(String(100), nullable=False)
+    user_id = Column(UUIDType, ForeignKey("users.id"), nullable=True, index=True)
+    action = Column(String(100), nullable=False, index=True)
     resource_type = Column(String(50))
     resource_id = Column(UUIDType)
     details = Column(JSONType, default={})
     ip_address = Column(INETType)
     user_agent = Column(Text)
     correlation_id = Column(UUIDType)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    created_at = Column(TIMESTAMP, server_default=func.now(), index=True)
 
     # Relationships
     user = relationship("User", back_populates="audit_logs")

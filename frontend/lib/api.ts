@@ -116,9 +116,9 @@ export class ApiClient {
     );
 
     // Response interceptor for error handling
-    this.client.interceptors.response.use(
-      (response) => response,
-      (error) => {
+    const responseInterceptor = [
+      (response: any) => response,
+      (error: any) => {
         // Don't redirect on 401 for login/register pages or OAuth callback (they handle it themselves)
         if (error.response?.status === 401 && typeof window !== 'undefined') {
           const path = window.location.pathname;
@@ -130,14 +130,11 @@ export class ApiClient {
                             path.startsWith('/calendar/callback');
           
           // Don't clear token for auth endpoints that might return 401 during normal flow
-          // Also don't clear token if the request was made during initialization
-          // (check if we just logged in by seeing if token exists)
           const isAuthEndpoint = requestUrl.includes('/auth/login') || 
                                 requestUrl.includes('/auth/register');
           
           // Check if we have a token - if yes, it might be valid and we shouldn't clear it
-          // This prevents clearing token during initialization right after login
-          const hasToken = this.getAuthToken();
+          const hasToken = !!this.getAuthToken();
           const isInitializationRequest = requestUrl.includes('/auth/me') || 
                                          requestUrl.includes('/auth/settings');
           
@@ -151,21 +148,20 @@ export class ApiClient {
           // Don't clear token if:
           // 1. We're on an auth page
           // 2. It's an auth endpoint request
-          // 3. We have a token AND it's an initialization request (might be timing issue)
-          // 4. We're on dashboard and just logged in (give it time to initialize)
-          // 5. We're on dashboard and it's a calendar/tasks request (these might fail if calendar not connected)
-          // 6. It's an avatar upload request (let the component handle the error)
-          const isDashboardInitialization = path === '/dashboard' && hasToken && isInitializationRequest;
-          const isDashboardCalendarRequest = path === '/dashboard' && hasToken && isCalendarOrTaskRequest;
-          const shouldPreserveToken = isAuthPage || isAuthEndpoint || isDashboardInitialization || isDashboardCalendarRequest || isAvatarUpload;
+          // 3. We're on dashboard and it's an initialization or calendar/tasks request (might be timing issue)
+          const isDashboardInitialization = path === '/dashboard' && hasToken && (isInitializationRequest || isCalendarOrTaskRequest);
+          
+          // PUBLIC PAGE CHECK: If on landing page (/), never redirect, just clear token if exists
+          const isPublicPage = path === '/';
+          
+          const shouldPreserveToken = isAuthPage || isAuthEndpoint || isDashboardInitialization || isAvatarUpload;
           
           if (!shouldPreserveToken) {
-            // Clear token only if we're not in an auth flow and not during initialization
+            // Clear token only if we're not in a state where we should preserve it
             this.clearAuthToken();
             
-            // Only redirect if not already on auth pages
-            if (!path.startsWith('/auth/') && !path.startsWith('/calendar/callback')) {
-              // Use setTimeout to avoid redirect loops
+            // Only redirect if not on a public page and not already on auth pages
+            if (!isPublicPage && !path.startsWith('/auth/') && !path.startsWith('/calendar/callback')) {
               setTimeout(() => {
                 if (window.location.pathname === path) {
                   window.location.href = '/auth/login';
@@ -176,7 +172,10 @@ export class ApiClient {
         }
         return Promise.reject(error);
       }
-    );
+    ] as const;
+
+    this.client.interceptors.response.use(...responseInterceptor);
+    this.authClient.interceptors.response.use(...responseInterceptor);
   }
 
   private getAuthToken(): string | null {

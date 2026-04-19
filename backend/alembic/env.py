@@ -29,25 +29,18 @@ target_metadata = Base.metadata
 # ... etc.
 
 
+def include_object(object, name, type_, reflected, compare_to):
+    """Filter objects to include only those defined in our metadata."""
+    if type_ == "table" and name not in target_metadata.tables:
+        return False
+    return True
+
+
+from app.config import settings
+
 def get_database_url():
-    """Get database URL from environment variables or config."""
-    # First try DATABASE_URL
-    if os.getenv("DATABASE_URL"):
-        return os.getenv("DATABASE_URL")
-    
-    # Otherwise construct from individual environment variables
-    from urllib.parse import quote_plus
-    
-    postgres_host = os.getenv("POSTGRES_HOST", "localhost")
-    postgres_port = os.getenv("POSTGRES_PORT", "5432")
-    postgres_db = os.getenv("POSTGRES_DB", "intelligent_ai_assistant")
-    postgres_user = os.getenv("POSTGRES_USER", "postgres")
-    postgres_password = os.getenv("POSTGRES_PASSWORD", "postgres")
-    
-    # URL encode the password to handle special characters
-    encoded_password = quote_plus(postgres_password)
-    
-    return f"postgresql://{postgres_user}:{encoded_password}@{postgres_host}:{postgres_port}/{postgres_db}"
+    """Get database URL from application settings."""
+    return settings.get_database_url()
 
 
 def run_migrations_offline() -> None:
@@ -68,6 +61,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -92,7 +86,9 @@ def run_migrations_online() -> None:
 
     with connectable.connect() as connection:
         context.configure(
-            connection=connection, target_metadata=target_metadata
+            connection=connection, 
+            target_metadata=target_metadata,
+            include_object=include_object
         )
 
         with context.begin_transaction():

@@ -67,10 +67,12 @@ export function useAuth() {
             // Token is invalid - clear everything only if it's a real auth error
             // Don't clear on network errors or temporary issues
             if (authError.response?.status === 401 || authError.response?.status === 403) {
-              console.error('Auth token is invalid:', authError);
+              // Using debug/info instead of error for stale tokens to avoid alarming DevTools logs on public pages
+              console.info('Session expired or invalid token - treating user as guest');
               if (isMounted) {
-                localStorage.removeItem('auth_token');
+                // api.clearAuthToken is already handled by interceptor but we reset state here
                 setUser(null);
+                setSettings(null);
               }
             } else {
               // Network error or other issue - don't clear token, just log

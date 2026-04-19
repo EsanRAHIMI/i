@@ -132,3 +132,5 @@ Please check out the `docs/` folder for more detailed instructions and past repo
 
 ## 📄 License
 MIT License - see [LICENSE](LICENSE) file for details.
+
+git add . && git commit -m "Fix" && git push origin main
