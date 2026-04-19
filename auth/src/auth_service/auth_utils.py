@@ -18,19 +18,44 @@ BCRYPT_MAX_PASSWORD_LENGTH = 72
 
 
 def _normalize_pem_input(value: str) -> bytes:
-    raw = (value or "").strip()
+    if not value:
+        return b""
+    
+    raw = value.strip()
+    # Remove surrounding quotes if any
     if (raw.startswith("\"") and raw.endswith("\"")) or (raw.startswith("'") and raw.endswith("'")):
-        raw = raw[1:-1]
-    if "\\n" in raw and "BEGIN" in raw:
+        raw = raw[1:-1].strip()
+        
+    # Handle escaped newlines
+    if "\\n" in raw:
         raw = raw.replace("\\n", "\n")
-    if "BEGIN" in raw:
+    
+    # If it's already a proper PEM, just return it
+    if "-----BEGIN" in raw and "-----END" in raw:
+        # Ensure it has actual newlines
+        # Some env parsers replace newlines with spaces or just remove them
+        if "\n" not in raw:
+            # Try to fix it by identifying headers/footers
+            parts = raw.split("-----")
+            if len(parts) >= 5:
+                # parts[1] is BEGIN ..., parts[2] is the body, parts[3] is END ...
+                header = f"-----{parts[1]}-----"
+                footer = f"-----{parts[3]}-----"
+                body = parts[2].strip().replace(" ", "").replace("\r", "")
+                # PEM body should be wrapped, but many parsers handle it on one line if it's clean
+                return f"{header}\n{body}\n{footer}".encode("utf-8")
         return raw.encode("utf-8")
+        
+    # If it's just the base64 part, wrap it in headers (assuming RSA/PKCS8 as default)
     try:
-        decoded = base64.b64decode(raw, validate=True)
-        if b"BEGIN" in decoded:
-            return decoded
+        # Check if it's base64
+        base64.b64decode(raw, validate=True)
+        # We don't know if it's private or public, so we can't easily wrap it here
+        # But usually if it's raw base64, we just encode it
+        return raw.encode("utf-8")
     except Exception:
         pass
+        
     return raw.encode("utf-8")
 
 
