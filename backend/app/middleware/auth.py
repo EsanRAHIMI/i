@@ -27,27 +27,31 @@ def _normalize_pem_input(value: str) -> bytes:
     if not value:
         return b""
     
+    # 1. Clean basic wrapping and literal escapes
     raw = value.strip()
-    # Remove surrounding quotes if any
     if (raw.startswith("\"") and raw.endswith("\"")) or (raw.startswith("'") and raw.endswith("'")):
         raw = raw[1:-1].strip()
-        
-    # Handle escaped newlines
-    if "\\n" in raw:
-        raw = raw.replace("\\n", "\n")
+    raw = raw.replace("\\n", "\n")
     
-    # If it's already a proper PEM, just return it
+    # 2. Extract and rebuild PEM structure
     if "-----BEGIN" in raw and "-----END" in raw:
-        # Ensure it has actual newlines
-        if "\n" not in raw:
-            parts = raw.split("-----")
-            if len(parts) >= 5:
-                header = f"-----{parts[1]}-----"
-                footer = f"-----{parts[3]}-----"
-                body = parts[2].strip().replace(" ", "").replace("\r", "")
-                return f"{header}\n{body}\n{footer}".encode("utf-8")
-        return raw.encode("utf-8")
+        import re
+        header_match = re.search(r"-----BEGIN [^-]+-----", raw)
+        footer_match = re.search(r"-----END [^-]+-----", raw)
         
+        if header_match and footer_match:
+            header = header_match.group(0)
+            footer = footer_match.group(0)
+            
+            start_idx = raw.find(header) + len(header)
+            end_idx = raw.find(footer)
+            body = raw[start_idx:end_idx]
+            
+            # REMOVE ALL WHITESPACE from the base64 body
+            clean_body = "".join(body.split())
+            
+            return f"{header}\n{clean_body}\n{footer}".encode("utf-8")
+            
     return raw.encode("utf-8")
 
 

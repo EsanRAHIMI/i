@@ -21,41 +21,34 @@ def _normalize_pem_input(value: str) -> bytes:
     if not value:
         return b""
     
+    # 1. Clean basic wrapping and literal escapes
     raw = value.strip()
-    # Remove surrounding quotes if any
     if (raw.startswith("\"") and raw.endswith("\"")) or (raw.startswith("'") and raw.endswith("'")):
         raw = raw[1:-1].strip()
-        
-    # Handle escaped newlines
-    if "\\n" in raw:
-        raw = raw.replace("\\n", "\n")
+    raw = raw.replace("\\n", "\n")
     
-    # If it's already a proper PEM, just return it
+    # 2. Extract and rebuild PEM structure
     if "-----BEGIN" in raw and "-----END" in raw:
-        # Ensure it has actual newlines
-        # Some env parsers replace newlines with spaces or just remove them
-        if "\n" not in raw:
-            # Try to fix it by identifying headers/footers
-            parts = raw.split("-----")
-            if len(parts) >= 5:
-                # parts[1] is BEGIN ..., parts[2] is the body, parts[3] is END ...
-                header = f"-----{parts[1]}-----"
-                footer = f"-----{parts[3]}-----"
-                body = parts[2].strip().replace(" ", "").replace("\r", "")
-                # PEM body should be wrapped, but many parsers handle it on one line if it's clean
-                return f"{header}\n{body}\n{footer}".encode("utf-8")
-        return raw.encode("utf-8")
+        import re
+        # Find exact markers (e.g. BEGIN RSA PRIVATE KEY or BEGIN PRIVATE KEY)
+        header_match = re.search(r"-----BEGIN [^-]+-----", raw)
+        footer_match = re.search(r"-----END [^-]+-----", raw)
         
-    # If it's just the base64 part, wrap it in headers (assuming RSA/PKCS8 as default)
-    try:
-        # Check if it's base64
-        base64.b64decode(raw, validate=True)
-        # We don't know if it's private or public, so we can't easily wrap it here
-        # But usually if it's raw base64, we just encode it
-        return raw.encode("utf-8")
-    except Exception:
-        pass
-        
+        if header_match and footer_match:
+            header = header_match.group(0)
+            footer = footer_match.group(0)
+            
+            # Extract content between markers
+            start_idx = raw.find(header) + len(header)
+            end_idx = raw.find(footer)
+            body = raw[start_idx:end_idx]
+            
+            # REMOVE ALL WHITESPACE from the base64 body
+            clean_body = "".join(body.split())
+            
+            # Reconstruct clean PEM
+            return f"{header}\n{clean_body}\n{footer}".encode("utf-8")
+            
     return raw.encode("utf-8")
 
 
@@ -111,14 +104,21 @@ class JWTManager:
                 return p
             return auth_root / p
 
-        # 1) Explicit env keys
-        private_key = os.getenv("JWT_PRIVATE_KEY")
-        public_key = os.getenv("JWT_PUBLIC_KEY")
+        # 1) Explicit env keys from settings
+        private_key = settings.JWT_PRIVATE_KEY
+        public_key = settings.JWT_PUBLIC_KEY
+        
         if private_key and public_key:
-            _validate_keys(_normalize_pem_input(private_key), _normalize_pem_input(public_key))
-            self.private_key = private_key
-            self.public_key = public_key
-            return
+            try:
+                norm_private = _normalize_pem_input(private_key)
+                norm_public = _normalize_pem_input(public_key)
+                _validate_keys(norm_private, norm_public)
+                self.private_key = norm_private.decode("utf-8")
+                self.public_key = norm_public.decode("utf-8")
+                return
+            except Exception as e:
+                import structlog
+                structlog.get_logger(__name__).error("Failed to load JWT keys from environment, falling back", error=str(e))
 
         # 2) Explicit key files
         private_file = os.getenv("JWT_PRIVATE_KEY_FILE")
