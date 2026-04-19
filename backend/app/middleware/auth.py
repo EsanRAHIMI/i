@@ -24,19 +24,30 @@ logger = structlog.get_logger(__name__)
 
 
 def _normalize_pem_input(value: str) -> bytes:
-    raw = (value or "").strip()
-    if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
-        raw = raw[1:-1]
-    if "\\n" in raw and "BEGIN" in raw:
+    if not value:
+        return b""
+    
+    raw = value.strip()
+    # Remove surrounding quotes if any
+    if (raw.startswith("\"") and raw.endswith("\"")) or (raw.startswith("'") and raw.endswith("'")):
+        raw = raw[1:-1].strip()
+        
+    # Handle escaped newlines
+    if "\\n" in raw:
         raw = raw.replace("\\n", "\n")
-    if "BEGIN" in raw:
+    
+    # If it's already a proper PEM, just return it
+    if "-----BEGIN" in raw and "-----END" in raw:
+        # Ensure it has actual newlines
+        if "\n" not in raw:
+            parts = raw.split("-----")
+            if len(parts) >= 5:
+                header = f"-----{parts[1]}-----"
+                footer = f"-----{parts[3]}-----"
+                body = parts[2].strip().replace(" ", "").replace("\r", "")
+                return f"{header}\n{body}\n{footer}".encode("utf-8")
         return raw.encode("utf-8")
-    try:
-        decoded = base64.b64decode(raw, validate=True)
-        if b"BEGIN" in decoded:
-            return decoded
-    except Exception:
-        pass
+        
     return raw.encode("utf-8")
 
 
